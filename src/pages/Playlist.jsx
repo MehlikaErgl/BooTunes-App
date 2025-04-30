@@ -1,117 +1,201 @@
 import React, { useState } from "react";
-import { Card, Button, Row, Col, Form, Accordion } from "react-bootstrap";
+import {
+  Card,
+  Button,
+  InputGroup,
+  FormControl,
+  Nav,
+  Tab,
+  Badge,
+} from "react-bootstrap";
+import { motion } from "framer-motion";
+import { FiPlus, FiCheck, FiX } from "react-icons/fi";
 
-function Playlist() {
+export default function Playlist() {
   const allPlaylists = [
-    { title: "Lo-fi Study", image: "https://picsum.photos/100/100?random=21" },
-    { title: "Chill Vibes", image: "https://picsum.photos/100/100?random=22" },
-    { title: "Jazz Classics", image: "https://picsum.photos/100/100?random=23" },
-    { title: "Piano Relax", image: "https://picsum.photos/100/100?random=24" },
+    { title: "Lo-fi Study", image: "https://picsum.photos/300/300?random=21" },
+    { title: "Chill Vibes", image: "https://picsum.photos/300/300?random=22" },
+    { title: "Jazz Classics", image: "https://picsum.photos/300/300?random=23" },
+    { title: "Piano Relax", image: "https://picsum.photos/300/300?random=24" },
+    { title: "Morning Boost", image: "https://picsum.photos/300/300?random=25" },
+    { title: "Evening Acoustic", image: "https://picsum.photos/300/300?random=26" },
   ];
 
   const [searchTerm, setSearchTerm] = useState("");
   const [myPlaylist, setMyPlaylist] = useState([]);
 
-  const handleAddToList = (track) => {
-    if (!myPlaylist.some((t) => t.title === track.title)) {
-      setMyPlaylist([...myPlaylist, track]);
+  const handleAdd = (pl) => {
+    if (!myPlaylist.find((t) => t.title === pl.title)) {
+      setMyPlaylist([...myPlaylist, pl]);
     }
   };
 
+  const handleRemove = (pl) => {
+    setMyPlaylist(myPlaylist.filter((t) => t.title !== pl.title));
+  };
+
+  const filtered = allPlaylists.filter((pl) =>
+    pl.title.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   return (
-    <div className="text-white">
-      <div
-          className="text-center mb-4 p-3 mx-auto rounded-4 shadow-sm"
+    <div
+      style={{
+        display: "flex",
+        height: "calc(100vh - 24vh)",
+        justifyContent: "center",
+        alignItems: "flex-start",
+        padding: "3rem 1rem",
+        backdropFilter: "blur(10px)",
+      }}
+    >
+      <div style={{ width: "100%", maxWidth: "900px", padding: "2rem" }}>
+      <div className="text-center">
+        <div
+          className="d-inline-block px-4 py-2 mb-3 rounded"
           style={{
-            maxWidth: "400px",
-            backgroundColor: "rgba(0, 0, 0, 0.3)",
-            backdropFilter: "blur(6px)",
+            backdropFilter: 'blur(4px)',
+            backgroundColor: 'rgba(153, 152, 152, 0.5)'
           }}
         >
-        <h2 style={{ fontSize: "2rem", color: "#fff", margin: 0 }}>
-          🎵 Playlist Library
-        </h2>
+          <h2 className="m-0 text-dark">🎵 Your Playlists</h2>
+        </div>
       </div>
 
 
-      {/* Search */}
-      <Form className="mb-4 d-flex justify-content-center">
-        <Form.Control
-          type="text"
-          placeholder="Search playlists..."
-          style={{ width: "300px" }}
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-        />
-      </Form>
+        {/* Search Bar */}
+        <div className="d-flex justify-content-center mb-4">
+          <InputGroup style={{ maxWidth: "400px" }}>
+            <FormControl
+              placeholder="Search playlists..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+            <Button variant="primary">🔍</Button>
+          </InputGroup>
+        </div>
 
-      <Row>
-        {/* General Playlist Section */}
-        <Col md={8}>
-          <Row className="g-3 mb-4">
-            {allPlaylists
-              .filter((track) =>
-                track.title.toLowerCase().includes(searchTerm.toLowerCase())
-              )
-              .map((track, index) => (
-                <Col md={6} key={index}>
-                  <Card className="shadow-sm d-flex flex-row align-items-center p-2 h-100">
-                    <Card.Img
-                      src={track.image}
-                      style={{ width: "80px", height: "80px", borderRadius: "12px" }}
-                      className="me-3"
-                    />
-                    <Card.Body>
-                      <Card.Title>{track.title}</Card.Title>
+        {/* Tabs */}
+        <Tab.Container defaultActiveKey="all">
+          <Nav variant="pills" className="justify-content-center mb-4">
+            <Nav.Item>
+              <Nav.Link eventKey="all">
+                All Playlists{' '}
+                <Badge bg="light" text="dark">
+                  {filtered.length}
+                </Badge>
+              </Nav.Link>
+            </Nav.Item>
+            <Nav.Item>
+              <Nav.Link eventKey="mine">
+                My Playlist{' '}
+                <Badge bg="light" text="dark">
+                  {myPlaylist.length}
+                </Badge>
+              </Nav.Link>
+            </Nav.Item>
+          </Nav>
+
+          <Tab.Content>
+            {/* All Playlists: vertical scroll list */}
+            <Tab.Pane eventKey="all">
+              <div style={{ maxHeight: "400px", overflowY: "auto", overflowX: "hidden" }}>
+                {filtered.map((pl, i) => (
+                  <motion.div
+                    key={i}
+                    whileHover={{ scale: 1.02 }}
+                    transition={{ type: "spring", stiffness: 300 }}
+                    style={{ marginBottom: "1rem" }}
+                  >
+                    <Card
+                      className="d-flex flex-row align-items-center shadow"
+                      style={{
+                        borderRadius: "0.75rem",
+                        background: "#fff",
+                        overflow: "hidden",
+                      }}
+                    >
+                      <img
+                        src={pl.image}
+                        alt={pl.title}
+                        style={{
+                          width: "80px",
+                          height: "80px",
+                          objectFit: "cover",
+                        }}
+                      />
+                      <div className="flex-grow-1 ms-3">
+                        <h6 className="mb-1 text-dark">{pl.title}</h6>
+                      </div>
                       <Button
-                        variant="success"
-                        size="sm"
-                        onClick={() => handleAddToList(track)}
+                        variant={
+                          myPlaylist.find((t) => t.title === pl.title)
+                            ? "success"
+                            : "outline-primary"
+                        }
+                        className="me-3"
+                        onClick={() => handleAdd(pl)}
                       >
-                        Add to My Playlist
+                        {myPlaylist.find((t) => t.title === pl.title) ? (
+                          <><FiCheck /> Added</>
+                        ) : (
+                          <><FiPlus /> Add</>
+                        )}
                       </Button>
-                    </Card.Body>
-                  </Card>
-                </Col>
-              ))}
-          </Row>
-        </Col>
+                    </Card>
+                  </motion.div>
+                ))}
+              </div>
+            </Tab.Pane>
 
-        {/* My Playlist Section */}
-        <Col md={4}>
-          <Accordion>
-            <Accordion.Item eventKey="0">
-              <Accordion.Header>
-                ⭐ My Playlist ({myPlaylist.length})
-              </Accordion.Header>
-              <Accordion.Body>
+            {/* My Playlist: vertical scroll list */}
+            <Tab.Pane eventKey="mine">
+              <div style={{ maxHeight: "400px", overflowY: "auto", overflowX: "hidden" }}>
                 {myPlaylist.length === 0 ? (
-                  <p>No tracks added yet.</p>
+                  <p className="text-center text-muted">No tracks added yet.</p>
                 ) : (
-                  <Row className="g-2">
-                    {myPlaylist.map((track, index) => (
-                      <Col md={12} key={index}>
-                        <Card className="shadow-sm d-flex flex-row align-items-center p-2">
-                          <Card.Img
-                            src={track.image}
-                            style={{ width: "60px", height: "60px", borderRadius: "10px" }}
-                            className="me-2"
-                          />
-                          <Card.Body>
-                            <Card.Title style={{ fontSize: "1rem" }}>{track.title}</Card.Title>
-                          </Card.Body>
-                        </Card>
-                      </Col>
-                    ))}
-                  </Row>
+                  myPlaylist.map((pl, idx) => (
+                    <motion.div
+                      key={idx}
+                      whileHover={{ scale: 1.02 }}
+                      style={{ marginBottom: "1rem" }}
+                    >
+                      <Card
+                        className="d-flex flex-row align-items-center shadow"
+                        style={{
+                          borderRadius: "0.75rem",
+                          background: "#fff",
+                          overflow: "hidden",
+                        }}
+                      >
+                        <img
+                          src={pl.image}
+                          alt={pl.title}
+                          style={{
+                            width: "80px",
+                            height: "80px",
+                            objectFit: "cover",
+                          }}
+                        />
+                        <div className="flex-grow-1 ms-3">
+                          <h6 className="mb-1 text-dark">{pl.title}</h6>
+                        </div>
+                        <Button
+                          variant="outline-danger"
+                          className="me-3"
+                          onClick={() => handleRemove(pl)}
+                        >
+                          <FiX /> Remove
+                        </Button>
+                      </Card>
+                    </motion.div>
+                  ))
                 )}
-              </Accordion.Body>
-            </Accordion.Item>
-          </Accordion>
-        </Col>
-      </Row>
+              </div>
+            </Tab.Pane>
+          </Tab.Content>
+        </Tab.Container>
+      </div>
     </div>
   );
 }
-
-export default Playlist;
