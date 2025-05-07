@@ -205,6 +205,8 @@ function Layout({ children }) {
               borderRadius: "1rem",
               boxShadow: "0 8px 24px rgba(0,0,0,0.15)",
               padding: "2rem",
+              maxHeight: "calc(100vh - 150px)",
+              overflowY: "auto",
             }}
           >
             {children}
