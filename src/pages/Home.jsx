@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Container,
   Row,
@@ -16,8 +16,16 @@ import { useNavigate } from "react-router-dom";
 export default function Home() {
   const navigate = useNavigate();
   const username = localStorage.getItem("username") || "Reader";
+  const [theme, setTheme] = useState(document.body.getAttribute("data-theme") || "light");
 
-  // Mock data; replace with real API data
+  useEffect(() => {
+    const observer = new MutationObserver(() => {
+      setTheme(document.body.getAttribute("data-theme") || "light");
+    });
+    observer.observe(document.body, { attributes: true });
+    return () => observer.disconnect();
+  }, []);
+
   const readingBooks = [
     { title: "The Alchemist", progress: 60, image: "https://picsum.photos/300/400?random=1" },
     { title: "Atomic Habits", progress: 80, image: "https://picsum.photos/300/400?random=2" },
@@ -32,52 +40,53 @@ export default function Home() {
   ];
 
   const allBooks = [...readingBooks, ...recommendedBooks];
-
   const [searchTerm, setSearchTerm] = useState("");
-
   const filteredBooks = allBooks.filter((book) =>
     book.title.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const isDark = theme === "dark";
+  const contentBg = isDark ? "rgba(51, 46, 46, 0.4)" : undefined;
+  const cardBg = isDark ? "rgba(255,255,255,0.08)" : "#ffffff";
+  const textColor = isDark ? "#f1f1f1" : "#222";
+  const blurStyle = {
+    backdropFilter: "blur(6px)",
+    backgroundColor: isDark ? "rgba(255,255,255,0.1)" : "rgba(200, 200, 200, 0.66)"
+  };
+
+  const responsiveStyle = {
+    paddingTop: "1.5rem",
+    paddingBottom: "1.5rem",
+    fontSize: "0.9rem",
+  };
+
+  const isMobile = window.innerWidth <= 576;
+
   return (
-    <div
+    <Container
+      fluid
+      className="py-4 px-3"
       style={{
-        height: "100vh",
+        height: "100%",
         overflow: "hidden",
-        backgroundColor: "#f8f9fa",
+        display: "flex",
+        flexDirection: "column",
+        backgroundColor: contentBg,
+        backdropFilter: isDark ? "blur(6px)" : undefined,
+        color: textColor,
+        ...(isMobile ? responsiveStyle : {})
       }}
     >
-      <Container
-        fluid
-        className="py-5"
-        style={{
-          maxWidth: "100%",
-          height: "100%",
-          overflowY: "auto",
-          margin: "0 auto",
-        }}
-      >
-        {/* Greeting */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-        >
-          <div
-            className="d-inline-block p-2 mb-4 rounded"
-            style={{
-              backdropFilter: 'blur(5px)',
-              backgroundColor: 'rgba(128,128,128,0.5)'
-            }}
-          >
-            <h3 className="mb-0" style={{ color: '#222' }}>
+      <div className="py-4 px-4" style={{ flexShrink: 0 }}>
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
+          <div className="d-inline-block p-2 mb-3 rounded" style={blurStyle}>
+            <h3 className="mb-0" style={{ color: textColor, fontSize: isMobile ? "1.25rem" : undefined }}>
               Welcome back, <span className="text-primary">{username}</span> 👋
             </h3>
           </div>
         </motion.div>
 
-        {/* Search & Quick Actions */}
-        <Row className="align-items-center mb-5">
+        <Row className="align-items-center">
           <Col xs={12} md={8} lg={6} className="mb-3 mb-md-0">
             <InputGroup>
               <FormControl
@@ -85,114 +94,74 @@ export default function Home() {
                 aria-label="Search books"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
+                style={
+                  isDark
+                    ? {
+                        backgroundColor: "#6a6a6a",
+                        color: "#ffffff",
+                        border: "1px solid #555",
+                      }
+                    : {}
+                }
               />
-              <Button variant="primary">🔍</Button>
+              <Button variant={isDark ? "light" : "primary"}>🔍</Button>
             </InputGroup>
           </Col>
           <Col xs={12} md={4} className="text-md-end">
-            <Button
-              variant="outline-primary"
-              className="me-2 mb-2"
-              onClick={() => navigate("/library")}
-            >
+            <Button variant="outline-primary" className="me-2 mb-2" onClick={() => navigate("/library")}>
               📚 Library
             </Button>
-            <Button
-              variant="outline-success"
-              className="mb-2"
-              onClick={() => navigate("/playlist")}
-            >
-              🎵 Playlist
-            </Button>
+            <Button variant="outline-success" className="mb-2" onClick={() => navigate("/playlist")}>🎵 Playlist</Button>
           </Col>
         </Row>
+      </div>
 
-        {/* Search Results */}
+      <div
+        className="custom-scroll"
+        style={{ overflowY: "auto", flexGrow: 1, padding: isMobile ? "1rem" : "2rem" }}
+      >
         {searchTerm && (
           <section className="mb-5">
-            <h5 className="mb-3">Search Results</h5>
+            <h5 className="mb-3" style={{ color: textColor }}>Search Results</h5>
             <Row className="gx-4 gy-4">
               {filteredBooks.length > 0 ? (
                 filteredBooks.map((book, idx) => (
                   <Col xs={12} sm={6} md={4} lg={3} key={idx}>
-                    <Card className="h-100 shadow-sm border-0">
-                      <Card.Img
-                        variant="top"
-                        src={book.image}
-                        alt={book.title}
-                        style={{ height: "220px", objectFit: "cover" }}
-                      />
+                    <Card className="h-100 shadow-sm border-0" style={{ backgroundColor: cardBg, color: textColor }}>
+                      <Card.Img variant="top" src={book.image} alt={book.title} style={{ height: "220px", objectFit: "cover" }} />
                       <Card.Body className="d-flex flex-column">
-                        <Card.Title>{book.title}</Card.Title>
-                        {book.author && (
-                          <Card.Subtitle className="text-muted mb-2">
-                            {book.author}
-                          </Card.Subtitle>
-                        )}
-                        <Button
-                          variant="primary"
-                          className="mt-auto"
-                          onClick={() => navigate("/reader")}
-                        >
-                          Read
-                        </Button>
+                        <Card.Title style={{ fontSize: isMobile ? "1rem" : undefined }}>{book.title}</Card.Title>
+                        {book.author && <Card.Subtitle className="text-muted mb-2">{book.author}</Card.Subtitle>}
+                        <Button variant="primary" className="mt-auto" onClick={() => navigate("/reader")}>Read</Button>
                       </Card.Body>
                     </Card>
                   </Col>
                 ))
               ) : (
-                <Col>
-                  <Alert variant="warning">No books found matching "{searchTerm}".</Alert>
-                </Col>
+                <Col><Alert variant="warning">No books found matching "{searchTerm}".</Alert></Col>
               )}
             </Row>
           </section>
         )}
 
-        {/* Currently Reading & Recommended Sections only if not searching */}
         {!searchTerm && (
           <>
             <section className="mb-5">
-              <div className="d-inline-block p-2 mb-3 rounded" style={{ backdropFilter: 'blur(5px)', backgroundColor: 'rgba(128,128,128,0.5)' }}>
-                <h5 className="text-dark mb-0">Currently Reading</h5>
+              <div className="d-inline-block p-2 mb-3 rounded" style={blurStyle}>
+                <h5 className="mb-0" style={{ color: textColor }}>Currently Reading</h5>
               </div>
               <Row className="gx-4 gy-4">
                 {readingBooks.map((book, idx) => (
                   <Col xs={12} sm={6} md={4} lg={3} key={idx}>
-                    <motion.div
-                      whileHover={{ scale: 1.03 }}
-                      transition={{ type: "spring", stiffness: 300 }}
-                    >
-                      <Card className="h-100 shadow-sm border-0">
+                    <motion.div whileHover={{ scale: 1.03 }} transition={{ type: "spring", stiffness: 300 }}>
+                      <Card className="h-100 shadow-sm border-0" style={{ backgroundColor: cardBg, color: textColor }}>
                         <div style={{ position: "relative" }}>
-                          <Card.Img
-                            variant="top"
-                            src={book.image}
-                            alt={book.title}
-                            style={{
-                              height: "220px",
-                              objectFit: "cover",
-                              borderTopLeftRadius: "0.5rem",
-                              borderTopRightRadius: "0.5rem",
-                            }}
-                          />
-                          <Badge
-                            bg="primary"
-                            pill
-                            style={{ position: "absolute", top: 10, right: 10 }}
-                          >
-                            {book.progress}%
-                          </Badge>
+                          <Card.Img src={book.image} alt={book.title} style={{ height: "220px", objectFit: "cover" }} />
+                          <Badge bg="primary" pill style={{ position: "absolute", top: 10, right: 10 }}>{book.progress}%</Badge>
                         </div>
                         <Card.Body className="d-flex flex-column">
                           <Card.Title className="mb-3">{book.title}</Card.Title>
-                          <Button
-                            variant="primary"
-                            className="mt-auto"
-                            onClick={() => navigate("/reader")}
-                          >
-                            Continue
-                          </Button>
+                          <Button variant="primary" className="mt-auto" onClick={() => navigate("/reader")}>Continue</Button>
                         </Card.Body>
                       </Card>
                     </motion.div>
@@ -202,35 +171,18 @@ export default function Home() {
             </section>
 
             <section>
-              <div className="d-inline-block p-2 mb-3 rounded" style={{ backdropFilter: 'blur(5px)', backgroundColor: 'rgba(128,128,128,0.5)' }}>
-                <h5 className="text-dark mb-0">Recommended For You</h5>
+              <div className="d-inline-block p-2 mb-3 rounded" style={blurStyle}>
+                <h5 className="mb-0" style={{ color: textColor }}>Recommended For You</h5>
               </div>
               <div className="d-flex flex-row flex-nowrap overflow-auto gx-3">
                 {recommendedBooks.map((book, idx) => (
-                  <motion.div
-                    key={idx}
-                    whileHover={{ scale: 1.05 }}
-                    className="me-3"
-                    style={{ minWidth: '160px' }}
-                  >
-                    <Card className="shadow-sm border-0">
-                      <Card.Img
-                        variant="top"
-                        src={book.image}
-                        alt={book.title}
-                        style={{ height: '200px', objectFit: 'cover' }}
-                      />
+                  <motion.div key={idx} whileHover={{ scale: 1.05 }} className="me-3" style={{ minWidth: '160px' }}>
+                    <Card className="shadow-sm border-0" style={{ backgroundColor: cardBg, color: textColor }}>
+                      <Card.Img src={book.image} alt={book.title} style={{ height: '200px', objectFit: 'cover' }} />
                       <Card.Body>
                         <Card.Title className="mb-1" style={{ fontSize: '1rem' }}>{book.title}</Card.Title>
                         <Card.Subtitle className="text-muted" style={{ fontSize: '0.85rem' }}>{book.author}</Card.Subtitle>
-                        <Button
-                          variant="outline-primary"
-                          size="sm"
-                          className="mt-2"
-                          onClick={() => navigate("/reader")}
-                        >
-                          Read
-                        </Button>
+                        <Button variant="outline-primary" size="sm" className="mt-2" onClick={() => navigate("/reader")}>Read</Button>
                       </Card.Body>
                     </Card>
                   </motion.div>
@@ -239,7 +191,21 @@ export default function Home() {
             </section>
           </>
         )}
-      </Container>
-    </div>
+      </div>
+
+      {/* Scrollbar style (dark/light theme) */}
+      <style>{`
+        .custom-scroll::-webkit-scrollbar {
+          width: 8px;
+        }
+        .custom-scroll::-webkit-scrollbar-thumb {
+          background-color: ${isDark ? "#555" : "#ccc"};
+          border-radius: 4px;
+        }
+        .custom-scroll::-webkit-scrollbar-track {
+          background-color: ${isDark ? "#2f2f2f" : "#f1f1f1"};
+        }
+      `}</style>
+    </Container>
   );
 }

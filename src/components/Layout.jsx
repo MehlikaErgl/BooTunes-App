@@ -6,37 +6,42 @@ import {
   Button,
   Offcanvas,
   Row,
-  Col,
-  Form,
-  InputGroup
+  Col
 } from "react-bootstrap";
 import { NavLink, useNavigate } from "react-router-dom";
-import { FiMenu, FiX, FiSun, FiMoon, FiSearch } from "react-icons/fi";
+import { FiMenu, FiX, FiSun, FiMoon } from "react-icons/fi";
 import bgImage from "../assets/background.png";
 
-function Layout({ children }) {
+export default function Layout({ children }) {
   const navigate = useNavigate();
+
+  // theme + user
   const storedTheme = localStorage.getItem("theme") || "light";
   const [theme, setTheme] = useState(storedTheme);
   const username = localStorage.getItem("username");
-  const [showCanvas, setShowCanvas] = useState(false);
-  const [offcanvasWidth, setOffcanvasWidth] = useState(window.innerWidth < 768 ? "80%" : "30%");
 
-  const navItems = [
-    { label: "Home", to: "/home" },
-    { label: "Library", to: "/library" },
-    { label: "Reader", to: "/reader" },
-    { label: "Settings", to: "/settings" }
-  ];
-
+  // mobile width detection
+  const [width, setWidth] = useState(window.innerWidth);
   useEffect(() => {
-    const handleResize = () => {
+    const onResize = () => setWidth(window.innerWidth);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+  const isMobile = width < 576;
+
+  // offcanvas state
+  const [showCanvas, setShowCanvas] = useState(false);
+  const [offcanvasWidth, setOffcanvasWidth] = useState(
+    window.innerWidth < 768 ? "80%" : "30%"
+  );
+  useEffect(() => {
+    const onResize = () =>
       setOffcanvasWidth(window.innerWidth < 768 ? "80%" : "30%");
-    };
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
   }, []);
 
+  // persist theme
   useEffect(() => {
     document.body.setAttribute("data-theme", theme);
     localStorage.setItem("theme", theme);
@@ -46,15 +51,31 @@ function Layout({ children }) {
     localStorage.removeItem("username");
     navigate("/login");
   };
+  const toggleTheme = () =>
+    setTheme((prev) => (prev === "light" ? "dark" : "light"));
 
-  const toggleTheme = () => setTheme(prev => (prev === "light" ? "dark" : "light"));
-
-  // Colors based on theme
+  // colors & backgrounds
   const textColor = theme === "light" ? "text-dark" : "text-light";
   const navVariant = theme === "light" ? "light" : "dark";
-  const navBg = theme === "light" ? "rgba(255,255,255,0.8)" : "rgba(0,0,0,0.85)";
-  const offcanvasBg = theme === "light" ? "bg-light text-dark" : "bg-dark text-light";
-  const contentBg = theme === "light" ? "rgba(255,255,255,0.95)" : "rgba(0,0,0,0.7)";
+  const navBg =
+    theme === "light"
+      ? "rgba(255,255,255,0.8)"
+      : "rgba(25, 23, 23, 0.85)";
+  const offcanvasBg =
+    theme === "light" ? "bg-light text-dark" : "bg-dark text-light";
+  const contentBg =
+    theme === "light"
+      ? "rgba(255,255,255,0.60)"
+      : "rgba(40, 40, 40, 0.65)";
+  const contentBlur = theme === "light" ? "blur(16px)" : "blur(6px)";
+
+  // nav links
+  const navItems = [
+    { label: "Home", to: "/home" },
+    { label: "Library", to: "/library" },
+    { label: "Reader", to: "/reader" },
+    { label: "Settings", to: "/settings" }
+  ];
 
   return (
     <div
@@ -68,16 +89,21 @@ function Layout({ children }) {
         width: "100%",
       }}
     >
-      {/* Overlay */}
+      {/* Theme overlay */}
       <div
         style={{
           position: "absolute",
           inset: 0,
-          background: "linear-gradient(180deg, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.6) 100%)",
+          background:
+            theme === "dark"
+              ? "linear-gradient(180deg, rgba(0,0,0,0.65) 0%, rgba(0,0,0,0.85) 100%)"
+              : "linear-gradient(180deg, rgba(53,48,48,0.4) 0%, rgba(41,38,38,0.6) 100%)",
           pointerEvents: "none",
+          zIndex: 0
         }}
       />
 
+      {/* Navbar */}
       <Navbar
         expand="lg"
         variant={navVariant}
@@ -104,35 +130,21 @@ function Layout({ children }) {
                   key={item.to}
                   as={NavLink}
                   to={item.to}
-                  className={({ isActive }) => `mx-3 ${textColor} ${isActive ? 'fw-bold' : ''}`}
+                  className={({ isActive }) =>
+                    `mx-3 ${textColor} ${isActive ? "fw-bold" : ""}`
+                  }
                 >
                   {item.label}
                 </Nav.Link>
               ))}
-
-              <Form className="d-none d-md-flex ms-3">
-                <InputGroup>
-                  <Form.Control
-                    type="search"
-                    placeholder="Search books"
-                    aria-label="Search"
-                    className={theme === 'dark' ? 'bg-secondary text-light border-0' : ''}
-                  />
-                  <Button variant={theme === 'dark' ? 'outline-light' : 'outline-secondary'}>
-                    <FiSearch />
-                  </Button>
-                </InputGroup>
-              </Form>
             </Nav>
-
             <div className="d-flex align-items-center">
               <Button variant="link" onClick={toggleTheme} className={`${textColor} me-3`}>
                 {theme === "light" ? <FiMoon size={20} /> : <FiSun size={20} />}
               </Button>
-
               {username && <span className={`${textColor} me-3`}>👋 {username}</span>}
               <Button
-                variant={theme === 'dark' ? 'outline-light' : 'outline-primary'}
+                variant={theme === "dark" ? "outline-light" : "outline-primary"}
                 size="sm"
                 onClick={handleLogout}
               >
@@ -143,18 +155,16 @@ function Layout({ children }) {
         </Container>
       </Navbar>
 
+      {/* Offcanvas menu */}
       <Offcanvas
         show={showCanvas}
         onHide={() => setShowCanvas(false)}
         placement="start"
         className={offcanvasBg}
         scroll={true}
-        style={{
-          width: offcanvasWidth,
-          backdropFilter: "blur(5px)"
-        }}
+        style={{ width: offcanvasWidth, backdropFilter: "blur(5px)" }}
       >
-        <Offcanvas.Header closeButton closeVariant={theme === 'light' ? 'dark' : 'white'}>
+        <Offcanvas.Header closeButton closeVariant={theme === "light" ? "dark" : "white"}>
           <Offcanvas.Title className={textColor}>Menu</Offcanvas.Title>
         </Offcanvas.Header>
         <Offcanvas.Body>
@@ -174,15 +184,11 @@ function Layout({ children }) {
           <hr className="border-secondary my-3" />
           {username && <div className={`${textColor} mb-3`}>👋 {username}</div>}
           <div className="d-flex justify-content-between">
-            <Button
-              variant="link"
-              onClick={toggleTheme}
-              className={textColor}
-            >
-              {theme === 'light' ? <FiMoon /> : <FiSun />}
+            <Button variant="link" onClick={toggleTheme} className={textColor}>
+              {theme === "light" ? <FiMoon /> : <FiSun />}
             </Button>
             <Button
-              variant={theme === 'dark' ? 'outline-light' : 'outline-primary'}
+              variant={theme === "dark" ? "outline-light" : "outline-primary"}
               onClick={() => {
                 setShowCanvas(false);
                 handleLogout();
@@ -194,27 +200,37 @@ function Layout({ children }) {
         </Offcanvas.Body>
       </Offcanvas>
 
-      <Container fluid className="py-5" style={{ position: "relative", zIndex: 1, paddingTop: "70px" }}>
+      {/* Content wrapper */}
+      <Container
+        fluid
+        className="py-5"
+        style={{ position: "relative", zIndex: 1, paddingTop: "70px" }}
+      >
         <Row className="justify-content-center">
           <Col
             xs={12}
-            md={10}
-            lg={8}
+            md={12}
+            lg={10}
+            xl={9}
             style={{
               backgroundColor: contentBg,
               borderRadius: "1rem",
               boxShadow: "0 8px 24px rgba(0,0,0,0.15)",
               padding: "2rem",
-              maxHeight: "calc(100vh - 150px)",
-              overflowY: "auto",
+
+              // mobile gets 50px more height
+              maxHeight: isMobile
+                ? "calc(100vh - 100px)"
+                : "calc(100vh - 150px)",
+
+              overflowY: "hidden",
+              backdropFilter: contentBlur
             }}
           >
-            {children}
+            {React.cloneElement(children, { theme })}
           </Col>
         </Row>
       </Container>
     </div>
   );
 }
-
-export default Layout;

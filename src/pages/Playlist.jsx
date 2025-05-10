@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Container,
   Row,
@@ -56,6 +56,23 @@ function Playlist() {
   const [myPlaylist, setMyPlaylist] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [alertMsg, setAlertMsg] = useState(null);
+  const [theme, setTheme] = useState(localStorage.getItem("theme") || "light");
+
+  useEffect(() => {
+    const observer = new MutationObserver(() => {
+      setTheme(document.body.getAttribute("data-theme") || "light");
+    });
+    observer.observe(document.body, { attributes: true });
+    return () => observer.disconnect();
+  }, []);
+
+  const isDark = theme === "dark";
+  const cardBg = isDark ? "rgba(255,255,255,0.08)" : "#fff";
+  const textColor = isDark ? "#f1f1f1" : "#000";
+  const blurBox = {
+    backgroundColor: isDark ? "rgba(255,255,255,0.1)" : "#f0f0f0",
+    backdropFilter: "blur(6px)",
+  };
 
   const handleAdd = (song) => {
     if (!myPlaylist.find((s) => s.title === song.title)) {
@@ -83,131 +100,181 @@ function Playlist() {
   );
 
   return (
-    <Container className="py-4">
-      <h2 className="fw-bold text-center py-3 px-4 rounded" style={{ backgroundColor: "#f0f0f0" }}>
-        🎵 Musics
-      </h2>
+    <div
+      style={{
+        height: "100%",
+        overflow: "hidden",
+        display: "flex",
+        flexDirection: "column",
+        color: textColor,
+      }}
+    >
+      {/* Header */}
+      <div className="px-4 pt-4" style={{ flexShrink: 0 }}>
+        <h2 className="fw-bold text-center py-3 px-4 rounded" style={blurBox}>
+          🎵 Musics
+        </h2>
 
-      {alertMsg && (
-        <Alert variant={alertMsg.variant} className="text-center">
-          {alertMsg.message}
-        </Alert>
-      )}
+        {alertMsg && (
+          <Alert variant={alertMsg.variant} className="text-center">
+            {alertMsg.message}
+          </Alert>
+        )}
 
-      <Row className="mb-4 justify-content-center">
-        <Col xs="auto">
-          <Button
-            variant={!showMyPlaylist ? "primary" : "outline-primary"}
-            className="me-2"
-            onClick={() => {
-              setShowMyPlaylist(false);
-              setSelectedCategory(null);
-            }}
-          >
-            All Playlist
-          </Button>
-          <Button
-            variant={showMyPlaylist ? "primary" : "outline-primary"}
-            onClick={() => {
-              setShowMyPlaylist(true);
-              setSelectedCategory(null);
-            }}
-          >
-            My Playlist
-          </Button>
-        </Col>
-      </Row>
-
-      {/* Category View */}
-      {!showMyPlaylist && !selectedCategory && (
-        <Row className="mb-4">
-          {categories.map((cat, idx) => (
-            <Col md={6} key={idx} className="mb-4">
-              <Card
-                onClick={() => setSelectedCategory(cat.name)}
-                className="shadow-sm hover-shadow cursor-pointer"
-                style={{ cursor: "pointer" }}
-              >
-                <Card.Img variant="top" src={cat.image} height={200} style={{ objectFit: "cover" }} />
-                <Card.Body className="text-center">
-                  <Card.Title>{cat.name}</Card.Title>
-                </Card.Body>
-              </Card>
-            </Col>
-          ))}
+        <Row className="mb-3 justify-content-center">
+          <Col xs="auto">
+            <Button
+              variant={!showMyPlaylist ? "primary" : "outline-primary"}
+              className="me-2"
+              onClick={() => {
+                setShowMyPlaylist(false);
+                setSelectedCategory(null);
+              }}
+            >
+              All Playlist
+            </Button>
+            <Button
+              variant={showMyPlaylist ? "primary" : "outline-primary"}
+              onClick={() => {
+                setShowMyPlaylist(true);
+                setSelectedCategory(null);
+              }}
+            >
+              My Playlist
+            </Button>
+          </Col>
         </Row>
-      )}
+      </div>
 
-      {/* Song List per Category */}
-      {!showMyPlaylist && selectedCategory && (
-        <>
-          <h4 className="mb-3">{selectedCategory} Songs</h4>
-          <Row>
-            {allSongs[selectedCategory].map((song, idx) => {
-              const alreadyAdded = myPlaylist.some((s) => s.title === song.title);
-              return (
-                <Col md={6} key={idx} className="mb-3">
-                  <Card className="d-flex flex-row align-items-center shadow-sm p-2">
-                    <img
-                      src={getRandomImageUrl()}
-                      alt="Song"
-                      style={{ width: "80px", height: "80px", objectFit: "cover" }}
-                    />
-                    <div className="ms-3 flex-grow-1">
-                      <h6 className="mb-1">{song.title}</h6>
-                      <small className="text-muted">{song.artist}</small>
-                    </div>
-                    <Button
-                      variant={alreadyAdded ? "success" : "outline-primary"}
-                      onClick={() => handleAdd(song)}
-                    >
-                      {alreadyAdded ? "Added" : "Add"}
-                    </Button>
-                  </Card>
-                </Col>
-              );
-            })}
+      {/* Scrollable Content */}
+      <Container
+        fluid
+        className={isDark ? "playlist-scroll-dark" : ""}
+        style={{
+          overflowY: "auto",
+          flex: 1,
+          padding: "1rem 2rem",
+          scrollbarColor: isDark ? "#888 #2b2b2b" : undefined,
+          scrollbarWidth: isDark ? "thin" : undefined,
+        }}
+      >
+        {!showMyPlaylist && !selectedCategory && (
+          <Row className="mb-4">
+            {categories.map((cat, idx) => (
+              <Col md={6} key={idx} className="mb-4">
+                <Card
+                  onClick={() => setSelectedCategory(cat.name)}
+                  className="shadow-sm hover-shadow cursor-pointer"
+                  style={{ cursor: "pointer", backgroundColor: cardBg, color: textColor }}
+                >
+                  <Card.Img variant="top" src={cat.image} height={200} style={{ objectFit: "cover" }} />
+                  <Card.Body className="text-center">
+                    <Card.Title>{cat.name}</Card.Title>
+                  </Card.Body>
+                </Card>
+              </Col>
+            ))}
           </Row>
-        </>
-      )}
+        )}
 
-      {/* My Playlist View */}
-      {showMyPlaylist && (
-        <>
-          <InputGroup className="mb-4">
-            <FormControl
-              placeholder="Search in your playlist..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </InputGroup>
-          {filteredPlaylist.length === 0 ? (
-            <p className="text-center text-muted">No songs in your playlist.</p>
-          ) : (
+        {!showMyPlaylist && selectedCategory && (
+          <>
+            <h4 className="mb-3">{selectedCategory} Songs</h4>
             <Row>
-              {filteredPlaylist.map((song, idx) => (
-                <Col md={6} key={idx} className="mb-3">
-                  <Card className="d-flex flex-row align-items-center shadow-sm p-2">
-                    <img
-                      src={song.image}
-                      alt={song.title}
-                      style={{ width: "80px", height: "80px", objectFit: "cover" }}
-                    />
-                    <div className="ms-3 flex-grow-1">
-                      <h6 className="mb-1">{song.title}</h6>
-                      <small className="text-muted">{song.artist}</small>
-                    </div>
-                    <Button variant="outline-danger" onClick={() => handleRemove(song)}>
-                      Remove
-                    </Button>
-                  </Card>
-                </Col>
-              ))}
+              {allSongs[selectedCategory].map((song, idx) => {
+                const alreadyAdded = myPlaylist.some((s) => s.title === song.title);
+                return (
+                  <Col md={6} key={idx} className="mb-3">
+                    <Card
+                      className="d-flex flex-row align-items-center shadow-sm p-2"
+                      style={{ backgroundColor: cardBg, color: textColor }}
+                    >
+                      <img
+                        src={getRandomImageUrl()}
+                        alt="Song"
+                        style={{ width: "80px", height: "80px", objectFit: "cover" }}
+                      />
+                      <div className="ms-3 flex-grow-1">
+                        <h6 className="mb-1">{song.title}</h6>
+                        <small className="text-muted">{song.artist}</small>
+                      </div>
+                      <Button
+                        variant={alreadyAdded ? "success" : "outline-primary"}
+                        onClick={() => handleAdd(song)}
+                      >
+                        {alreadyAdded ? "Added" : "Add"}
+                      </Button>
+                    </Card>
+                  </Col>
+                );
+              })}
             </Row>
-          )}
-        </>
+          </>
+        )}
+
+        {showMyPlaylist && (
+          <>
+            <InputGroup className="mb-4">
+              <FormControl
+                placeholder="Search in your playlist..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                style={
+                  isDark
+                    ? { backgroundColor: "#6a6a6a", color: "#eee", border: "1px solid #555" }
+                    : {}
+                }
+              />
+            </InputGroup>
+            {filteredPlaylist.length === 0 ? (
+              <p className="text-center text-muted">No songs in your playlist.</p>
+            ) : (
+              <Row>
+                {filteredPlaylist.map((song, idx) => (
+                  <Col md={6} key={idx} className="mb-3">
+                    <Card
+                      className="d-flex flex-row align-items-center shadow-sm p-2"
+                      style={{ backgroundColor: cardBg, color: textColor }}
+                    >
+                      <img
+                        src={song.image}
+                        alt={song.title}
+                        style={{ width: "80px", height: "80px", objectFit: "cover" }}
+                      />
+                      <div className="ms-3 flex-grow-1">
+                        <h6 className="mb-1">{song.title}</h6>
+                        <small className="text-muted">{song.artist}</small>
+                      </div>
+                      <Button variant="outline-danger" onClick={() => handleRemove(song)}>
+                        Remove
+                      </Button>
+                    </Card>
+                  </Col>
+                ))}
+              </Row>
+            )}
+          </>
+        )}
+      </Container>
+
+      {/* Scrollbar style injection */}
+      {isDark && (
+        <style>{`
+          .playlist-scroll-dark::-webkit-scrollbar {
+            width: 10px;
+          }
+          .playlist-scroll-dark::-webkit-scrollbar-track {
+            background: #2b2b2b;
+            border-radius: 8px;
+          }
+          .playlist-scroll-dark::-webkit-scrollbar-thumb {
+            background-color: #888;
+            border-radius: 10px;
+            border: 2px solid #2b2b2b;
+          }
+        `}</style>
       )}
-    </Container>
+    </div>
   );
 }
 

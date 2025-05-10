@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Container,
   Row,
@@ -24,6 +24,17 @@ export default function Library() {
 
   const [searchTerm, setSearchTerm] = useState("");
   const [myBookList, setMyBookList] = useState([]);
+  const [theme, setTheme] = useState(localStorage.getItem("theme") || "light");
+
+  useEffect(() => {
+    const observer = new MutationObserver(() => {
+      setTheme(document.body.getAttribute("data-theme") || "light");
+    });
+    observer.observe(document.body, { attributes: true });
+    return () => observer.disconnect();
+  }, []);
+
+  const isDark = theme === "dark";
 
   const handleAddToList = (book) => {
     if (!myBookList.some((b) => b.title === book.title)) {
@@ -48,10 +59,19 @@ export default function Library() {
         overflow: "hidden",
         display: "flex",
         flexDirection: "column",
+        backgroundColor: isDark ? "rgba(51, 46, 46, 0.4)" : undefined,
+        backdropFilter: isDark ? "blur(6px)" : undefined,
+        color: isDark ? "#eee" : "#000",
       }}
     >
-      <div className="d-inline-block p-2 mb-3 rounded" style={{ backdropFilter: 'blur(5px)', backgroundColor: 'rgba(153, 152, 152, 0.5)' }}>
-          <h2 className="text-dark mb-0">Library 📚</h2>
+      <div
+        className="d-inline-block p-2 mb-3 rounded"
+        style={{
+          backdropFilter: "blur(5px)",
+          backgroundColor: isDark ? "rgba(255,255,255,0.1)" : "rgba(153,152,152,0.5)"
+        }}
+      >
+        <h2 className={`mb-0 ${isDark ? "text-light" : "text-dark"}`}>Library 📚</h2>
       </div>
 
       <Row className="justify-content-center mb-3">
@@ -61,17 +81,32 @@ export default function Library() {
               placeholder="Search books..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
+              style={{
+                backgroundColor: isDark ? "#6a6a6a" : undefined,
+                color: isDark ? "#eee" : undefined,
+                border: isDark ? "1px solid #555" : undefined
+              }}
             />
             <Button variant="primary">🔍</Button>
           </InputGroup>
         </Col>
       </Row>
 
-      <div style={{ overflowY: "auto", flexGrow: 1, paddingRight: "0.5rem" }}>
+      <div
+        style={{
+          overflowY: "auto",
+          flexGrow: 1,
+          paddingRight: "0.5rem",
+          scrollbarColor: isDark ? "#999 #333" : undefined,
+          scrollbarWidth: "thin"
+        }}
+        className={isDark ? "dark-scrollbar" : ""}
+      >
         <Tabs
           defaultActiveKey="all"
           id="library-tabs"
           className="mb-3 justify-content-center"
+          variant={isDark ? "pills" : undefined}
         >
           <Tab
             eventKey="all"
@@ -85,14 +120,26 @@ export default function Library() {
               {filteredBooks.map((book, idx) => (
                 <Col xs={12} sm={6} md={4} lg={3} key={idx}>
                   <motion.div whileHover={{ scale: 1.02 }}>
-                    <Card className="h-100 shadow" style={{ border: "none", borderRadius: "0.75rem" }}>
+                    <Card
+                      className="h-100 shadow"
+                      style={{
+                        border: "none",
+                        borderRadius: "0.75rem",
+                        backgroundColor: isDark ? "rgba(255,255,255,0.08)" : "#fff",
+                        color: isDark ? "#f1f1f1" : "#000"
+                      }}
+                    >
                       <Card.Img
                         src={book.image}
                         alt={book.title}
-                        style={{ height: "220px", objectFit: "cover", borderRadius: "0.75rem 0.75rem 0 0" }}
+                        style={{
+                          height: "220px",
+                          objectFit: "cover",
+                          borderRadius: "0.75rem 0.75rem 0 0"
+                        }}
                       />
                       <Card.Body className="d-flex flex-column">
-                        <Card.Title className="mb-3 text-dark">{book.title}</Card.Title>
+                        <Card.Title className={`mb-3 ${isDark ? "text-light" : "text-dark"}`}>{book.title}</Card.Title>
                         <Button
                           variant="outline-success"
                           onClick={() => handleAddToList(book)}
@@ -120,20 +167,32 @@ export default function Library() {
             }
           >
             {myBookList.length === 0 ? (
-              <p className="text-center text-muted mt-4">No books added yet.</p>
+              <p className={`text-center mt-4 ${isDark ? "text-light" : "text-muted"}`}>No books added yet.</p>
             ) : (
               <Row className="gx-4 gy-4 mt-3">
                 {myBookList.map((book, idx) => (
                   <Col xs={12} sm={6} md={4} lg={3} key={idx}>
                     <motion.div whileHover={{ scale: 1.02 }}>
-                      <Card className="h-100 shadow" style={{ border: "none", borderRadius: "0.75rem" }}>
+                      <Card
+                        className="h-100 shadow"
+                        style={{
+                          border: "none",
+                          borderRadius: "0.75rem",
+                          backgroundColor: isDark ? "rgba(255,255,255,0.08)" : "#fff",
+                          color: isDark ? "#f1f1f1" : "#000"
+                        }}
+                      >
                         <Card.Img
                           src={book.image}
                           alt={book.title}
-                          style={{ height: "220px", objectFit: "cover", borderRadius: "0.75rem 0.75rem 0 0" }}
+                          style={{
+                            height: "220px",
+                            objectFit: "cover",
+                            borderRadius: "0.75rem 0.75rem 0 0"
+                          }}
                         />
                         <Card.Body className="d-flex flex-column">
-                          <Card.Title className="text-dark text-center mb-3">{book.title}</Card.Title>
+                          <Card.Title className="text-center mb-3">{book.title}</Card.Title>
                           <Button
                             variant="outline-danger"
                             onClick={() => handleRemoveFromList(book)}

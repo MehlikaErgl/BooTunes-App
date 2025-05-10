@@ -1,5 +1,11 @@
-import React, { useState } from "react";
-import { Card, Button, Form, InputGroup, FormControl } from "react-bootstrap";
+import React, { useState, useEffect } from "react";
+import {
+  Card,
+  Button,
+  Form,
+  InputGroup,
+  FormControl,
+} from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { FiEye, FiEyeOff } from "react-icons/fi";
@@ -9,6 +15,15 @@ export default function Login() {
   const navigate = useNavigate();
   const [showSignUp, setShowSignUp] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [theme, setTheme] = useState("light");
+
+  useEffect(() => {
+    const storedTheme = localStorage.getItem("theme") || "light";
+    setTheme(storedTheme);
+    document.body.setAttribute("data-theme", storedTheme);
+  }, []);
+
+  const isDark = theme === "dark";
 
   const handleLogin = (e) => {
     e.preventDefault();
@@ -23,6 +38,29 @@ export default function Login() {
     alert("Sign Up Successful! You can now log in.");
     setShowSignUp(false);
   };
+
+  const cardStyle = {
+    borderRadius: "1rem",
+    backdropFilter: "blur(10px)",
+    backgroundColor: isDark ? "rgba(30,30,30,0.85)" : "rgba(255,255,255,0.85)",
+    boxShadow: "0 8px 24px rgba(0,0,0,0.15)",
+    maxWidth: "440px",
+    minHeight: "550px",
+    height: "auto",
+    margin: "0 auto",
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+    color: isDark ? "#eee" : "#222",
+  };
+
+  const inputStyle = isDark
+    ? {
+        backgroundColor: "#6a6a6a",
+        color: "#eee",
+        border: "1px solid #444",
+      }
+    : {};
 
   return (
     <div
@@ -39,7 +77,7 @@ export default function Login() {
         style={{
           position: "absolute",
           inset: 0,
-          background: "rgba(0,0,0,0.5)",
+          background: isDark ? "rgba(0,0,0,0.65)" : "rgba(0,0,0,0.5)",
         }}
       />
 
@@ -49,22 +87,7 @@ export default function Login() {
         transition={{ duration: 0.6 }}
         style={{ zIndex: 1, width: "100%" }}
       >
-        <Card
-          className="p-4 text-center w-100 border-0"
-          style={{
-            borderRadius: "1rem",
-            backdropFilter: "blur(10px)",
-            backgroundColor: "rgba(255,255,255,0.85)",
-            boxShadow: "0 8px 24px rgba(0,0,0,0.15)",
-            maxWidth: "440px",
-            minHeight: "550px",
-            height: "auto",
-            margin: "0 auto",
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center"
-          }}
-        >
+        <Card className="p-4 text-center w-100 border-0" style={cardStyle}>
           <div className="w-100" style={{ maxWidth: 360 }}>
             <Card.Title className="mb-4 display-6 text-primary">
               BooTunes 🎵📖
@@ -85,6 +108,7 @@ export default function Login() {
                       name="email"
                       placeholder="Email address"
                       required
+                      style={inputStyle}
                     />
                   </Form.Group>
 
@@ -95,9 +119,10 @@ export default function Login() {
                         name="password"
                         placeholder="Password"
                         required
+                        style={inputStyle}
                       />
                       <Button
-                        variant="outline-secondary"
+                        variant={isDark ? "outline-light" : "outline-secondary"}
                         onClick={() => setShowPassword((s) => !s)}
                       >
                         {showPassword ? <FiEyeOff /> : <FiEye />}
@@ -106,7 +131,11 @@ export default function Login() {
                   </Form.Group>
 
                   <Form.Group className="mb-3" controlId="remember">
-                    <Form.Check type="checkbox" label="Remember Me" />
+                    <Form.Check
+                      type="checkbox"
+                      label="Remember Me"
+                      className={isDark ? "text-light" : ""}
+                    />
                   </Form.Group>
 
                   <Button type="submit" className="w-100 mb-2" size="lg">
@@ -115,7 +144,7 @@ export default function Login() {
                 </Form>
 
                 <p className="mt-3">
-                  Don’t have an account?{' '}
+                  Don’t have an account?{" "}
                   <Button
                     variant="link"
                     className="p-0 text-success"
@@ -139,6 +168,7 @@ export default function Login() {
                       type="text"
                       placeholder="Full Name"
                       required
+                      style={inputStyle}
                     />
                   </Form.Group>
                   <Form.Group className="mb-3" controlId="signEmail">
@@ -146,6 +176,7 @@ export default function Login() {
                       type="email"
                       placeholder="Email address"
                       required
+                      style={inputStyle}
                     />
                   </Form.Group>
                   <Form.Group className="mb-3" controlId="signPassword">
@@ -153,15 +184,21 @@ export default function Login() {
                       type="password"
                       placeholder="Password"
                       required
+                      style={inputStyle}
                     />
                   </Form.Group>
-                  <Button type="submit" className="w-100 mb-2" size="lg" variant="success">
+                  <Button
+                    type="submit"
+                    className="w-100 mb-2"
+                    size="lg"
+                    variant="success"
+                  >
                     Register
                   </Button>
                 </Form>
 
                 <p className="mt-3">
-                  Already have an account?{' '}
+                  Already have an account?{" "}
                   <Button
                     variant="link"
                     className="p-0 text-primary"
