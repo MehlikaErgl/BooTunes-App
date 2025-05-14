@@ -78,14 +78,18 @@ export default function Settings() {
   };
 
   return (
-    <Container fluid className="d-flex justify-content-center align-items-start py-5">
+    <Container fluid className="d-flex justify-content-center align-items-start py-4" style={{ height: "100vh", overflow: "hidden" }}>
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.4 }}
-        style={{ width: "100%", maxWidth: 650 }}
+        style={{ width: "100%", maxWidth: 950, maxHeight: "%100", overflowY:"hidden" }}
       >
-        <Card className="p-4 shadow-lg position-relative" style={cardStyle}>
+        <Card className="p-4 shadow-lg position-relative" 
+        style={{
+          ...cardStyle,
+          maxHeight: "80hv",
+          overflowY: "auto",}}>
           <h2 className="mb-4 d-flex justify-content-between align-items-center">
             <span><FiSettings className="me-2 text-primary" /> App Settings</span>
             <Button

@@ -17,6 +17,20 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [theme, setTheme] = useState("light");
 
+  // Mobil yönlendirme
+  useEffect(() => {
+    const userAgent = navigator.userAgent || navigator.vendor || window.opera;
+
+    const isAndroid = /android/i.test(userAgent);
+    const isIOS = /iPad|iPhone|iPod/.test(userAgent) && !window.MSStream;
+
+    if (isAndroid) {
+      window.location.href = "https://play.google.com/store/apps/details?id=com.example.app"; // Android linkini buraya yaz
+    } else if (isIOS) {
+      window.location.href = "https://apps.apple.com/app/id000000000"; // iOS linkini buraya yaz
+    }
+  }, []);
+
   useEffect(() => {
     const storedTheme = localStorage.getItem("theme") || "light";
     setTheme(storedTheme);

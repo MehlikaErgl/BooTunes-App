@@ -54,18 +54,10 @@ export default function Home() {
     backgroundColor: isDark ? "rgba(255,255,255,0.1)" : "rgba(200, 200, 200, 0.66)"
   };
 
-  const responsiveStyle = {
-    paddingTop: "1.5rem",
-    paddingBottom: "1.5rem",
-    fontSize: "0.9rem",
-  };
-
-  const isMobile = window.innerWidth <= 576;
-
   return (
     <Container
       fluid
-      className="py-4 px-3"
+      className="py-1 px-0"
       style={{
         height: "100%",
         overflow: "hidden",
@@ -74,13 +66,12 @@ export default function Home() {
         backgroundColor: contentBg,
         backdropFilter: isDark ? "blur(6px)" : undefined,
         color: textColor,
-        ...(isMobile ? responsiveStyle : {})
       }}
     >
-      <div className="py-4 px-4" style={{ flexShrink: 0 }}>
+      <div className="py-0 px-4" style={{ flexShrink: 0 }}>
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
           <div className="d-inline-block p-2 mb-3 rounded" style={blurStyle}>
-            <h3 className="mb-0" style={{ color: textColor, fontSize: isMobile ? "1.25rem" : undefined }}>
+            <h3 className="mb-0" style={{ color: textColor }}>
               Welcome back, <span className="text-primary">{username}</span> 👋
             </h3>
           </div>
@@ -118,7 +109,7 @@ export default function Home() {
 
       <div
         className="custom-scroll"
-        style={{ overflowY: "auto", flexGrow: 1, padding: isMobile ? "1rem" : "2rem" }}
+        style={{ overflowY: "auto", flexGrow: 1, padding: "2rem" }}
       >
         {searchTerm && (
           <section className="mb-5">
@@ -130,7 +121,7 @@ export default function Home() {
                     <Card className="h-100 shadow-sm border-0" style={{ backgroundColor: cardBg, color: textColor }}>
                       <Card.Img variant="top" src={book.image} alt={book.title} style={{ height: "220px", objectFit: "cover" }} />
                       <Card.Body className="d-flex flex-column">
-                        <Card.Title style={{ fontSize: isMobile ? "1rem" : undefined }}>{book.title}</Card.Title>
+                        <Card.Title>{book.title}</Card.Title>
                         {book.author && <Card.Subtitle className="text-muted mb-2">{book.author}</Card.Subtitle>}
                         <Button variant="primary" className="mt-auto" onClick={() => navigate("/reader")}>Read</Button>
                       </Card.Body>
@@ -152,11 +143,11 @@ export default function Home() {
               </div>
               <Row className="gx-4 gy-4">
                 {readingBooks.map((book, idx) => (
-                  <Col xs={12} sm={6} md={4} lg={3} key={idx}>
+                  <Col xs={12} sm={4} md={4} lg={3} key={idx}>
                     <motion.div whileHover={{ scale: 1.03 }} transition={{ type: "spring", stiffness: 300 }}>
                       <Card className="h-100 shadow-sm border-0" style={{ backgroundColor: cardBg, color: textColor }}>
                         <div style={{ position: "relative" }}>
-                          <Card.Img src={book.image} alt={book.title} style={{ height: "220px", objectFit: "cover" }} />
+                          <Card.Img src={book.image} alt={book.title} style={{ height: "180px", objectFit: "cover" }} />
                           <Badge bg="primary" pill style={{ position: "absolute", top: 10, right: 10 }}>{book.progress}%</Badge>
                         </div>
                         <Card.Body className="d-flex flex-column">
@@ -193,7 +184,6 @@ export default function Home() {
         )}
       </div>
 
-      {/* Scrollbar style (dark/light theme) */}
       <style>{`
         .custom-scroll::-webkit-scrollbar {
           width: 8px;

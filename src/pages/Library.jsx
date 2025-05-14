@@ -53,7 +53,7 @@ export default function Library() {
   return (
     <Container
       fluid
-      className="py-4 px-3"
+      className="py-2 px-3"
       style={{
         height: "calc(100vh - 20vh)",
         overflow: "hidden",
@@ -133,7 +133,7 @@ export default function Library() {
                         src={book.image}
                         alt={book.title}
                         style={{
-                          height: "220px",
+                          height: "180px",
                           objectFit: "cover",
                           borderRadius: "0.75rem 0.75rem 0 0"
                         }}

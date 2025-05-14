@@ -15,6 +15,8 @@ export default function ReadingBook() {
   const [theme, setTheme] = useState(localStorage.getItem("theme") || "light");
   const navigate = useNavigate();
 
+  const [isAdded, setIsAdded] = useState(false);
+
   useEffect(() => {
     const observer = new MutationObserver(() => {
       const newTheme = document.body.dataset.theme || "light";
@@ -115,74 +117,94 @@ export default function ReadingBook() {
 
       {/* Music Player Bar */}
       <div
-        className="position-fixed bottom-0 start-0 end-0 d-flex justify-content-between align-items-center px-3"
-        style={{
-          height: "70px",
-          backgroundColor: "#000",
-          color: "#fff",
-          zIndex: 1200
-        }}
-      >
-        <div className="d-flex align-items-center gap-3">
-          <img
-            src="https://picsum.photos/200/200?random=31"
-            alt="cover"
-            style={{
-              width: "50px",
-              height: "50px",
-              borderRadius: "0.5rem",
-              objectFit: "cover"
-            }}
-          />
-          <div>
-            <div style={{ fontWeight: "bold" }}>Locked Eyes</div>
-            <div style={{ fontSize: "0.8rem", color: "#ccc" }}>
-              Mystery Friends
-            </div>
-          </div>
-        </div>
+  className="position-fixed bottom-0 start-0 end-0 d-flex justify-content-between align-items-center px-4"
+  style={{
+    height: "70px",
+    backgroundColor: "#000",
+    color: "#fff",
+    zIndex: 1200,
+  }}
+>
+  {/* Sol: Şarkı bilgisi */}
+  <div className="d-flex align-items-center gap-3">
+    <img
+      src="https://picsum.photos/200/200?random=31"
+      alt="cover"
+      style={{
+        width: "50px",
+        height: "50px",
+        borderRadius: "0.5rem",
+        objectFit: "cover",
+      }}
+    />
+    <div>
+      <div style={{ fontWeight: "bold" }}>Locked Eyes</div>
+      <div style={{ fontSize: "0.8rem", color: "#ccc" }}>Mystery Friends</div>
+    </div>
+  </div>
 
-        <div className="d-flex align-items-center gap-3">
-          <Form.Select
-            size="sm"
-            value={playlist}
-            onChange={(e) => setPlaylist(e.target.value)}
-            style={{
-              maxWidth: "150px",
-              backgroundColor: "#1f1f1f",
-              color: "#fff",
-              borderColor: "#333"
-            }}
-          >
-            <option value="general">🎵 General Playlist</option>
-            <option value="my">🎶 My Playlist</option>
-          </Form.Select>
+  {/* Orta: Kontroller */}
+  <div className="d-flex align-items-center gap-3">
+    <Button
+      variant="outline-light"
+      size="sm"
+      style={{ borderRadius: "50%", width: "36px", height: "36px" }}
+    >
+      ◀︎
+    </Button>
+    <Button
+      variant="light"
+      size="sm"
+      style={{ borderRadius: "50%", width: "48px", height: "48px" }}
+      onClick={handlePlayPause}
+    >
+      {isPlaying ? "❚❚" : "▶︎"}
+    </Button>
+    <Button
+      variant="outline-light"
+      size="sm"
+      style={{ borderRadius: "50%", width: "36px", height: "36px" }}
+    >
+      ▶︎
+    </Button>
+  </div>
 
-          <Button
-            variant="outline-light"
-            size="sm"
-            style={{ borderRadius: "50%", width: "36px", height: "36px" }}
-          >
-            ◀︎
-          </Button>
-          <Button
-            variant="light"
-            size="sm"
-            style={{ borderRadius: "50%", width: "48px", height: "48px" }}
-            onClick={handlePlayPause}
-          >
-            {isPlaying ? "❚❚" : "▶︎"}
-          </Button>
-          <Button
-            variant="outline-light"
-            size="sm"
-            style={{ borderRadius: "50%", width: "36px", height: "36px" }}
-          >
-            ▶︎
-          </Button>
-        </div>
-      </div>
+  {/* Sağ: Playlist seçimi + Artı butonu */}
+  <div className="d-flex align-items-center gap-3">
+  <Form.Select
+    size="sm"
+    value={playlist}
+    onChange={(e) => setPlaylist(e.target.value)}
+    style={{
+      maxWidth: "150px",
+      backgroundColor: "#1f1f1f",
+      color: "#fff",
+      borderColor: "#333",
+      borderRadius: "0.375rem", // Bootstrap default for small select
+      height: "36px"
+    }}
+  >
+    <option value="general">🎵 General Playlist</option>
+    <option value="my">🎶 My Playlist</option>
+  </Form.Select>
 
+  <Button
+    variant="outline-light"
+    size="sm"
+    style={{
+      height: "36px",
+      width: "70px",
+      borderRadius: "0.375rem", // Match select's roundness
+      fontSize: "0.85rem",
+      padding: 0
+    }}
+    onClick={() => setIsAdded(true)}
+    disabled={isAdded}
+  >
+    {isAdded ? "added" : "add+"}
+  </Button>
+</div>
+</div>
       {/* Scrollbar Styling */}
       <style>{`
         .custom-scroll::-webkit-scrollbar {

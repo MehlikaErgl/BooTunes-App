@@ -1,15 +1,14 @@
 import React, { useState, useEffect } from "react";
+import { useLocation, NavLink, useNavigate } from "react-router-dom";
 import {
   Container,
   Navbar,
   Nav,
   Button,
-  Offcanvas,
   Row,
   Col
 } from "react-bootstrap";
-import { NavLink, useNavigate } from "react-router-dom";
-import { FiMenu, FiX, FiSun, FiMoon } from "react-icons/fi";
+import { FiSun, FiMoon } from "react-icons/fi";
 import bgImage from "../assets/background.png";
 
 export default function Layout({ children }) {
@@ -20,32 +19,19 @@ export default function Layout({ children }) {
   const [theme, setTheme] = useState(storedTheme);
   const username = localStorage.getItem("username");
 
-  // mobile width detection
-  const [width, setWidth] = useState(window.innerWidth);
-  useEffect(() => {
-    const onResize = () => setWidth(window.innerWidth);
-    window.addEventListener("resize", onResize);
-    return () => window.removeEventListener("resize", onResize);
-  }, []);
-  const isMobile = width < 576;
-
-  // offcanvas state
-  const [showCanvas, setShowCanvas] = useState(false);
-  const [offcanvasWidth, setOffcanvasWidth] = useState(
-    window.innerWidth < 768 ? "80%" : "30%"
-  );
-  useEffect(() => {
-    const onResize = () =>
-      setOffcanvasWidth(window.innerWidth < 768 ? "80%" : "30%");
-    window.addEventListener("resize", onResize);
-    return () => window.removeEventListener("resize", onResize);
-  }, []);
-
   // persist theme
   useEffect(() => {
     document.body.setAttribute("data-theme", theme);
     localStorage.setItem("theme", theme);
   }, [theme]);
+
+  // prevent scroll on background
+  useEffect(() => {
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = "auto";
+    };
+  }, []);
 
   const handleLogout = () => {
     localStorage.removeItem("username");
@@ -61,21 +47,20 @@ export default function Layout({ children }) {
     theme === "light"
       ? "rgba(255,255,255,0.8)"
       : "rgba(25, 23, 23, 0.85)";
-  const offcanvasBg =
-    theme === "light" ? "bg-light text-dark" : "bg-dark text-light";
   const contentBg =
     theme === "light"
       ? "rgba(255,255,255,0.60)"
       : "rgba(40, 40, 40, 0.65)";
   const contentBlur = theme === "light" ? "blur(16px)" : "blur(6px)";
 
-  // nav links
   const navItems = [
     { label: "Home", to: "/home" },
     { label: "Library", to: "/library" },
-    { label: "Reader", to: "/reader" },
     { label: "Settings", to: "/settings" }
   ];
+
+  const location = useLocation();
+  const isSettingsPage = location.pathname === "/settings";
 
   return (
     <div
@@ -87,6 +72,7 @@ export default function Layout({ children }) {
         backgroundAttachment: "fixed",
         minHeight: "100vh",
         width: "100%",
+        overflowY: "hidden"
       }}
     >
       {/* Theme overlay */}
@@ -115,15 +101,7 @@ export default function Layout({ children }) {
             BooTunes 🎵📖
           </Navbar.Brand>
 
-          <Button
-            variant="link"
-            className="d-lg-none text-white ms-auto"
-            onClick={() => setShowCanvas(true)}
-          >
-            {showCanvas ? <FiX size={24} /> : <FiMenu size={24} />}
-          </Button>
-
-          <Navbar.Collapse className="d-none d-lg-flex justify-content-between align-items-center">
+          <Navbar.Collapse className="justify-content-between align-items-center">
             <Nav className="align-items-center">
               {navItems.map(item => (
                 <Nav.Link
@@ -155,51 +133,6 @@ export default function Layout({ children }) {
         </Container>
       </Navbar>
 
-      {/* Offcanvas menu */}
-      <Offcanvas
-        show={showCanvas}
-        onHide={() => setShowCanvas(false)}
-        placement="start"
-        className={offcanvasBg}
-        scroll={true}
-        style={{ width: offcanvasWidth, backdropFilter: "blur(5px)" }}
-      >
-        <Offcanvas.Header closeButton closeVariant={theme === "light" ? "dark" : "white"}>
-          <Offcanvas.Title className={textColor}>Menu</Offcanvas.Title>
-        </Offcanvas.Header>
-        <Offcanvas.Body>
-          <Nav className="flex-column mt-3">
-            {navItems.map(item => (
-              <Nav.Link
-                key={item.to}
-                as={NavLink}
-                to={item.to}
-                onClick={() => setShowCanvas(false)}
-                className={`${textColor} my-2`}
-              >
-                {item.label}
-              </Nav.Link>
-            ))}
-          </Nav>
-          <hr className="border-secondary my-3" />
-          {username && <div className={`${textColor} mb-3`}>👋 {username}</div>}
-          <div className="d-flex justify-content-between">
-            <Button variant="link" onClick={toggleTheme} className={textColor}>
-              {theme === "light" ? <FiMoon /> : <FiSun />}
-            </Button>
-            <Button
-              variant={theme === "dark" ? "outline-light" : "outline-primary"}
-              onClick={() => {
-                setShowCanvas(false);
-                handleLogout();
-              }}
-            >
-              Logout
-            </Button>
-          </div>
-        </Offcanvas.Body>
-      </Offcanvas>
-
       {/* Content wrapper */}
       <Container
         fluid
@@ -216,14 +149,8 @@ export default function Layout({ children }) {
               backgroundColor: contentBg,
               borderRadius: "1rem",
               boxShadow: "0 8px 24px rgba(0,0,0,0.15)",
-              padding: "2rem",
-
-              // mobile gets 50px more height
-              maxHeight: isMobile
-                ? "calc(100vh - 100px)"
-                : "calc(100vh - 150px)",
-
-              overflowY: "hidden",
+              maxHeight: "calc(100vh - 150px)",
+              overflowY: isSettingsPage ? "auto" : "hidden",
               backdropFilter: contentBlur
             }}
           >
