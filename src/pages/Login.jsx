@@ -39,19 +39,61 @@ export default function Login() {
 
   const isDark = theme === "dark";
 
-  const handleLogin = (e) => {
-    e.preventDefault();
-    const email = e.target.email.value;
-    const username = email.split("@")[0];
-    localStorage.setItem("username", username);
-    navigate("/home");
-  };
+  const handleLogin = async (e) => {
+  e.preventDefault();
+  const email = e.target.email.value;
+  const password = e.target.password.value;
 
-  const handleSignUp = (e) => {
-    e.preventDefault();
-    alert("Sign Up Successful! You can now log in.");
-    setShowSignUp(false);
-  };
+  try {
+    const res = await fetch("http://localhost:5000/api/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
+    });
+
+    const data = await res.json();
+
+    if (res.ok) {
+      localStorage.setItem("token", data.token);
+      localStorage.setItem("userId", data.userId);
+      alert("Giriş başarılı ✅");
+      navigate("/home");
+    } else {
+      alert(data.message || "Giriş başarısız");
+    }
+  } catch (err) {
+    console.error("Login error:", err);
+    alert("Sunucu hatası");
+  }
+};
+
+
+  const handleSignUp = async (e) => {
+  e.preventDefault();
+  const email = e.target.signEmail.value;
+  const password = e.target.signPassword.value;
+
+  try {
+    const res = await fetch("http://localhost:5000/api/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
+    });
+
+    const data = await res.json();
+
+    if (res.ok) {
+      alert("Kayıt başarılı ✅ Giriş yapabilirsiniz");
+      setShowSignUp(false);
+    } else {
+      alert(data.message || "Kayıt başarısız");
+    }
+  } catch (err) {
+    console.error("Register error:", err);
+    alert("Sunucu hatası");
+  }
+};
+
 
   const cardStyle = {
     borderRadius: "1rem",

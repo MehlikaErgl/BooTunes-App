@@ -10,206 +10,152 @@ import {
   Badge,
   Tabs,
   Tab,
+  Form,
 } from "react-bootstrap";
-import { motion } from "framer-motion";
+import { useNavigate } from "react-router-dom";
 
 export default function Library() {
-  const allBooks = [
-    { title: "The Alchemist", image: "https://picsum.photos/300/400?random=11" },
-    { title: "1984", image: "https://picsum.photos/300/400?random=12" },
-    { title: "Sapiens", image: "https://picsum.photos/300/400?random=13" },
-    { title: "Atomic Habits", image: "https://picsum.photos/300/400?random=14" },
-    { title: "Brave New World", image: "https://picsum.photos/300/400?random=15" },
-  ];
-
   const [searchTerm, setSearchTerm] = useState("");
   const [myBookList, setMyBookList] = useState([]);
-  const [theme, setTheme] = useState(localStorage.getItem("theme") || "light");
+  const [pdfFile, setPdfFile] = useState(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
-    const observer = new MutationObserver(() => {
-      setTheme(document.body.getAttribute("data-theme") || "light");
-    });
-    observer.observe(document.body, { attributes: true });
-    return () => observer.disconnect();
+    const userId = localStorage.getItem("userId");
+    fetch(`http://localhost:5000/api/books?userId=${userId}`)
+      .then((res) => res.json())
+      .then((data) => setMyBookList(data))
+      .catch((err) => console.error("Kitaplar alınamadı:", err));
   }, []);
 
-  const isDark = theme === "dark";
+  const handleBookSubmit = (e) => {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    const userId = localStorage.getItem("userId");
+    formData.append("userId", userId);
+    formData.append("pdf", pdfFile);
 
-  const handleAddToList = (book) => {
-    if (!myBookList.some((b) => b.title === book.title)) {
-      setMyBookList([...myBookList, book]);
-    }
+    fetch("http://localhost:5000/api/books", {
+      method: "POST",
+      body: formData,
+    })
+      .then((res) => res.json())
+      .then((newBook) => {
+        setMyBookList((prev) => [...prev, newBook]);
+        e.target.reset();
+        alert("Kitap eklendi ✅");
+      })
+      .catch((err) => {
+        console.error("❌ Kitap eklenemedi:", err);
+        alert("Kitap eklenemedi");
+      });
   };
 
-  const handleRemoveFromList = (book) => {
-    setMyBookList(myBookList.filter((b) => b.title !== book.title));
+  const handleRemove = (id) => {
+    fetch(`http://localhost:5000/api/books/${id}`, {
+      method: "DELETE",
+    })
+      .then((res) => {
+        if (res.ok) {
+          setMyBookList((prev) => prev.filter((book) => book._id !== id));
+        }
+      })
+      .catch((err) => console.error("Silme hatası:", err));
   };
 
-  const filteredBooks = allBooks.filter((book) =>
-    book.title.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredBooks = myBookList.filter((book) =>
+    book.title?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
-    <Container
-      fluid
-      className="py-2 px-3"
+    <div
       style={{
-        height: "calc(100vh - 20vh)",
-        overflow: "hidden",
+        height: "100vh",
         display: "flex",
         flexDirection: "column",
-        backgroundColor: isDark ? "rgba(51, 46, 46, 0.4)" : undefined,
-        backdropFilter: isDark ? "blur(6px)" : undefined,
-        color: isDark ? "#eee" : "#000",
+        backgroundColor: "#f8f9fa",
       }}
     >
-      <div
-        className="d-inline-block p-2 mb-3 rounded"
-        style={{
-          backdropFilter: "blur(5px)",
-          backgroundColor: isDark ? "rgba(255,255,255,0.1)" : "rgba(153,152,152,0.5)"
-        }}
-      >
-        <h2 className={`mb-0 ${isDark ? "text-light" : "text-dark"}`}>Library 📚</h2>
-      </div>
+      <Container fluid className="py-3">
+        <h2 className="mb-3">📚 Library</h2>
 
-      <Row className="justify-content-center mb-3">
-        <Col xs={12} md={6} lg={4}>
-          <InputGroup>
-            <FormControl
-              placeholder="Search books..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              style={{
-                backgroundColor: isDark ? "#6a6a6a" : undefined,
-                color: isDark ? "#eee" : undefined,
-                border: isDark ? "1px solid #555" : undefined
-              }}
-            />
-            <Button variant="primary">🔍</Button>
-          </InputGroup>
-        </Col>
-      </Row>
+        <Row className="justify-content-center mb-3">
+          <Col xs={12} md={6} lg={4}>
+            <InputGroup className="mb-2">
+              <FormControl
+                placeholder="Search books..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+              <Button variant="primary">🔍</Button>
+            </InputGroup>
 
-      <div
-        style={{
-          overflowY: "auto",
-          flexGrow: 1,
-          paddingRight: "0.5rem",
-          scrollbarColor: isDark ? "#999 #333" : undefined,
-          scrollbarWidth: "thin"
-        }}
-        className={isDark ? "dark-scrollbar" : ""}
-      >
-        <Tabs
-          defaultActiveKey="all"
-          id="library-tabs"
-          className="mb-3 justify-content-center"
-          variant={isDark ? "pills" : undefined}
-        >
+            <Form onSubmit={handleBookSubmit}>
+              <FormControl name="title" className="mb-2" placeholder="Book Title" required />
+              <FormControl name="image" className="mb-2" placeholder="Image URL" required />
+              <FormControl
+                type="file"
+                accept="application/pdf"
+                className="mb-2"
+                onChange={(e) => setPdfFile(e.target.files[0])}
+                required
+              />
+              <Button type="submit" variant="success" className="w-100">
+                ➕ Add Book
+              </Button>
+            </Form>
+          </Col>
+        </Row>
+      </Container>
+
+      <div style={{ flex: 1, overflowY: "auto", padding: "1rem 2rem" }}>
+        <Tabs defaultActiveKey="mybooks" id="tabs" className="mb-3">
           <Tab
-            eventKey="all"
+            eventKey="mybooks"
             title={
               <span>
-                All Books <Badge bg="secondary">{filteredBooks.length}</Badge>
+                My Books <Badge bg="success">{myBookList.length}</Badge>
               </span>
             }
           >
-            <Row className="gx-4 gy-4 mt-2">
-              {filteredBooks.map((book, idx) => (
-                <Col xs={12} sm={6} md={4} lg={3} key={idx}>
-                  <motion.div whileHover={{ scale: 1.02 }}>
-                    <Card
-                      className="h-100 shadow"
+            <Row className="gx-4 gy-4">
+              {filteredBooks.map((book) => (
+                <Col xs={12} sm={6} md={4} lg={3} key={book._id}>
+                  <Card className="h-100 d-flex flex-column shadow-sm">
+                    <Card.Img
+                      src={book.image}
+                      alt={book.title}
                       style={{
-                        border: "none",
-                        borderRadius: "0.75rem",
-                        backgroundColor: isDark ? "rgba(255,255,255,0.08)" : "#fff",
-                        color: isDark ? "#f1f1f1" : "#000"
+                        height: "160px", // Görsel küçültüldü
+                        objectFit: "cover",
                       }}
-                    >
-                      <Card.Img
-                        src={book.image}
-                        alt={book.title}
-                        style={{
-                          height: "180px",
-                          objectFit: "cover",
-                          borderRadius: "0.75rem 0.75rem 0 0"
-                        }}
-                      />
-                      <Card.Body className="d-flex flex-column">
-                        <Card.Title className={`mb-3 ${isDark ? "text-light" : "text-dark"}`}>{book.title}</Card.Title>
+                    />
+                    <Card.Body className="d-flex flex-column">
+                      <Card.Title className="text-center">{book.title}</Card.Title>
+                      <div className="mt-auto d-grid gap-2">
                         <Button
-                          variant="outline-success"
-                          onClick={() => handleAddToList(book)}
-                          disabled={myBookList.some((b) => b.title === book.title)}
-                          className="mt-auto"
+                          variant="outline-primary"
+                          size="sm"
+                          onClick={() => navigate(`/reader/${book._id}`)}
                         >
-                          {myBookList.some((b) => b.title === book.title)
-                            ? "Added"
-                            : "Add to Booklist"}
+                          📖 Read
                         </Button>
-                      </Card.Body>
-                    </Card>
-                  </motion.div>
+                        <Button
+                          variant="outline-danger"
+                          size="sm"
+                          onClick={() => handleRemove(book._id)}
+                        >
+                          ❌ Remove
+                        </Button>
+                      </div>
+                    </Card.Body>
+                  </Card>
                 </Col>
               ))}
             </Row>
           </Tab>
-
-          <Tab
-            eventKey="mylist"
-            title={
-              <span>
-                My List <Badge bg="success">{myBookList.length}</Badge>
-              </span>
-            }
-          >
-            {myBookList.length === 0 ? (
-              <p className={`text-center mt-4 ${isDark ? "text-light" : "text-muted"}`}>No books added yet.</p>
-            ) : (
-              <Row className="gx-4 gy-4 mt-3">
-                {myBookList.map((book, idx) => (
-                  <Col xs={12} sm={6} md={4} lg={3} key={idx}>
-                    <motion.div whileHover={{ scale: 1.02 }}>
-                      <Card
-                        className="h-100 shadow"
-                        style={{
-                          border: "none",
-                          borderRadius: "0.75rem",
-                          backgroundColor: isDark ? "rgba(255,255,255,0.08)" : "#fff",
-                          color: isDark ? "#f1f1f1" : "#000"
-                        }}
-                      >
-                        <Card.Img
-                          src={book.image}
-                          alt={book.title}
-                          style={{
-                            height: "220px",
-                            objectFit: "cover",
-                            borderRadius: "0.75rem 0.75rem 0 0"
-                          }}
-                        />
-                        <Card.Body className="d-flex flex-column">
-                          <Card.Title className="text-center mb-3">{book.title}</Card.Title>
-                          <Button
-                            variant="outline-danger"
-                            onClick={() => handleRemoveFromList(book)}
-                            className="mt-auto"
-                          >
-                            Remove from List
-                          </Button>
-                        </Card.Body>
-                      </Card>
-                    </motion.div>
-                  </Col>
-                ))}
-              </Row>
-            )}
-          </Tab>
         </Tabs>
       </div>
-    </Container>
+    </div>
   );
 }

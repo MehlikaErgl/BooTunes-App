@@ -17,6 +17,9 @@ export default function Home() {
   const navigate = useNavigate();
   const username = localStorage.getItem("username") || "Reader";
   const [theme, setTheme] = useState(document.body.getAttribute("data-theme") || "light");
+  const [readingBooks, setReadingBooks] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [recommendedBooks] = useState([]); // dummy yerine boş
 
   useEffect(() => {
     const observer = new MutationObserver(() => {
@@ -26,21 +29,15 @@ export default function Home() {
     return () => observer.disconnect();
   }, []);
 
-  const readingBooks = [
-    { title: "The Alchemist", progress: 60, image: "https://picsum.photos/300/400?random=1" },
-    { title: "Atomic Habits", progress: 80, image: "https://picsum.photos/300/400?random=2" },
-    { title: "1984", progress: 90, image: "https://picsum.photos/300/400?random=6" },
-  ];
-
-  const recommendedBooks = [
-    { title: "Sapiens", author: "Yuval Noah Harari", image: "https://picsum.photos/200/300?random=3" },
-    { title: "Blink", author: "Malcolm Gladwell", image: "https://picsum.photos/200/300?random=4" },
-    { title: "Deep Work", author: "Cal Newport", image: "https://picsum.photos/200/300?random=5" },
-    { title: "1984", author: "George Orwell", image: "https://picsum.photos/200/300?random=7" },
-  ];
+  useEffect(() => {
+    const userId = localStorage.getItem("userId");
+    fetch(`http://localhost:5000/api/books?userId=${userId}`)
+      .then(res => res.json())
+      .then(data => setReadingBooks(data))
+      .catch(err => console.error("Kitaplar alınamadı", err));
+  }, []);
 
   const allBooks = [...readingBooks, ...recommendedBooks];
-  const [searchTerm, setSearchTerm] = useState("");
   const filteredBooks = allBooks.filter((book) =>
     book.title.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -123,7 +120,7 @@ export default function Home() {
                       <Card.Body className="d-flex flex-column">
                         <Card.Title>{book.title}</Card.Title>
                         {book.author && <Card.Subtitle className="text-muted mb-2">{book.author}</Card.Subtitle>}
-                        <Button variant="primary" className="mt-auto" onClick={() => navigate("/reader")}>Read</Button>
+                        <Button variant="primary" className="mt-auto" onClick={() => navigate(`/reader/${book._id}`)}>Read</Button>
                       </Card.Body>
                     </Card>
                   </Col>
@@ -136,51 +133,29 @@ export default function Home() {
         )}
 
         {!searchTerm && (
-          <>
-            <section className="mb-5">
-              <div className="d-inline-block p-2 mb-3 rounded" style={blurStyle}>
-                <h5 className="mb-0" style={{ color: textColor }}>Currently Reading</h5>
-              </div>
-              <Row className="gx-4 gy-4">
-                {readingBooks.map((book, idx) => (
-                  <Col xs={12} sm={4} md={4} lg={3} key={idx}>
-                    <motion.div whileHover={{ scale: 1.03 }} transition={{ type: "spring", stiffness: 300 }}>
-                      <Card className="h-100 shadow-sm border-0" style={{ backgroundColor: cardBg, color: textColor }}>
-                        <div style={{ position: "relative" }}>
-                          <Card.Img src={book.image} alt={book.title} style={{ height: "180px", objectFit: "cover" }} />
-                          <Badge bg="primary" pill style={{ position: "absolute", top: 10, right: 10 }}>{book.progress}%</Badge>
-                        </div>
-                        <Card.Body className="d-flex flex-column">
-                          <Card.Title className="mb-3">{book.title}</Card.Title>
-                          <Button variant="primary" className="mt-auto" onClick={() => navigate("/reader")}>Continue</Button>
-                        </Card.Body>
-                      </Card>
-                    </motion.div>
-                  </Col>
-                ))}
-              </Row>
-            </section>
-
-            <section>
-              <div className="d-inline-block p-2 mb-3 rounded" style={blurStyle}>
-                <h5 className="mb-0" style={{ color: textColor }}>Recommended For You</h5>
-              </div>
-              <div className="d-flex flex-row flex-nowrap overflow-auto gx-3">
-                {recommendedBooks.map((book, idx) => (
-                  <motion.div key={idx} whileHover={{ scale: 1.05 }} className="me-3" style={{ minWidth: '160px' }}>
-                    <Card className="shadow-sm border-0" style={{ backgroundColor: cardBg, color: textColor }}>
-                      <Card.Img src={book.image} alt={book.title} style={{ height: '200px', objectFit: 'cover' }} />
-                      <Card.Body>
-                        <Card.Title className="mb-1" style={{ fontSize: '1rem' }}>{book.title}</Card.Title>
-                        <Card.Subtitle className="text-muted" style={{ fontSize: '0.85rem' }}>{book.author}</Card.Subtitle>
-                        <Button variant="outline-primary" size="sm" className="mt-2" onClick={() => navigate("/reader")}>Read</Button>
+          <section className="mb-5">
+            <div className="d-inline-block p-2 mb-3 rounded" style={blurStyle}>
+              <h5 className="mb-0" style={{ color: textColor }}>Your Library</h5>
+            </div>
+            <Row className="gx-4 gy-4">
+              {readingBooks.map((book, idx) => (
+                <Col xs={12} sm={4} md={4} lg={3} key={idx}>
+                  <motion.div whileHover={{ scale: 1.03 }} transition={{ type: "spring", stiffness: 300 }}>
+                    <Card className="h-100 shadow-sm border-0" style={{ backgroundColor: cardBg, color: textColor }}>
+                      <div style={{ position: "relative" }}>
+                        <Card.Img src={book.image} alt={book.title} style={{ height: "180px", objectFit: "cover" }} />
+                        <Badge bg="primary" pill style={{ position: "absolute", top: 10, right: 10 }}>📖</Badge>
+                      </div>
+                      <Card.Body className="d-flex flex-column">
+                        <Card.Title className="mb-3">{book.title}</Card.Title>
+                        <Button variant="primary" className="mt-auto" onClick={() => navigate(`/reader/${book._id}`)}>Continue</Button>
                       </Card.Body>
                     </Card>
                   </motion.div>
-                ))}
-              </div>
-            </section>
-          </>
+                </Col>
+              ))}
+            </Row>
+          </section>
         )}
       </div>
 
