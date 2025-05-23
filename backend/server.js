@@ -69,7 +69,7 @@ app.post("/api/login", async (req, res) => {
 // API - Kitap Ekleme
 app.post("/api/books", upload.single("pdf"), async (req, res) => {
   const { title, image, userId } = req.body;
-  const pdfUrl = req.file ? `/uploads/${req.file.filename}` : null;
+  const pdfUrl = req.file ? `/uploads/${req.file.filename}`: null;
 
   try {
     const book = new Book({ title, image, userId, pdfUrl });
