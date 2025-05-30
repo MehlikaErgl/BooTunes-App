@@ -12,7 +12,7 @@ app.use(express.json());
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 // MongoDB Bağlantısı
-mongoose.connect("mongodb+srv://fbbatuhan656:MelihMehlikaBatuhan1907@cluster0.yz0msyc.mongodb.net/BooTunes-App?retryWrites=true&w=majority&appName=Cluster0")
+mongoose.connect("mongodb+srv://eroglumehlika:MelihMehlikaBatuhan1907@cluster0.yz0msyc.mongodb.net/BooTunes-App?retryWrites=true&w=majority&appName=Cluster0")
   .then(() => console.log("✅ MongoDB bağlantısı başarılı"))
   .catch((err) => console.error("❌ MongoDB bağlantı hatası:", err));
 

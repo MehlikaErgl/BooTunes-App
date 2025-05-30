@@ -9,6 +9,8 @@ import {
   FormControl,
   Badge,
   Alert,
+  Modal,
+  Form,
 } from "react-bootstrap";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
@@ -19,7 +21,9 @@ export default function Home() {
   const [theme, setTheme] = useState(document.body.getAttribute("data-theme") || "light");
   const [readingBooks, setReadingBooks] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [recommendedBooks] = useState([]); // dummy yerine boş
+  const [recommendedBooks] = useState([]);
+  const [showModal, setShowModal] = useState(false);
+  const [pdfFile, setPdfFile] = useState(null);
 
   useEffect(() => {
     const observer = new MutationObserver(() => {
@@ -36,6 +40,30 @@ export default function Home() {
       .then(data => setReadingBooks(data))
       .catch(err => console.error("Kitaplar alınamadı", err));
   }, []);
+
+  const handleBookSubmit = (e) => {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    const userId = localStorage.getItem("userId");
+    formData.append("userId", userId);
+    formData.append("pdf", pdfFile);
+
+    fetch("http://localhost:5000/api/books", {
+      method: "POST",
+      body: formData,
+    })
+      .then((res) => res.json())
+      .then((newBook) => {
+        setReadingBooks((prev) => [...prev, newBook]);
+        setShowModal(false);
+        e.target.reset();
+        alert("Kitap eklendi ✅");
+      })
+      .catch((err) => {
+        console.error("❌ Kitap eklenemedi:", err);
+        alert("Kitap eklenemedi");
+      });
+  };
 
   const allBooks = [...readingBooks, ...recommendedBooks];
   const filteredBooks = allBooks.filter((book) =>
@@ -54,7 +82,7 @@ export default function Home() {
   return (
     <Container
       fluid
-      className="py-1 px-0"
+      className="py-1 px-0 position-relative"
       style={{
         height: "100%",
         overflow: "hidden",
@@ -65,15 +93,40 @@ export default function Home() {
         color: textColor,
       }}
     >
-      <div className="py-0 px-4" style={{ flexShrink: 0 }}>
+      {/* Welcome Message */}
+      <div className="py-0 px-4">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
-          <div className="d-inline-block p-2 mb-3 rounded" style={blurStyle}>
+          <div className="d-inline-block p-2 my-3 rounded" style={blurStyle}>
             <h3 className="mb-0" style={{ color: textColor }}>
               Welcome back, <span className="text-primary">{username}</span> 👋
             </h3>
           </div>
         </motion.div>
+      </div>
 
+      {/* Add Button (Fixed Position) */}
+      <Button
+        variant="primary"
+        className="position-absolute rounded-circle d-flex justify-content-center align-items-center"
+        style={{
+          width: "80px",
+          height: "80px",
+          top: "20px",
+          right: "20px",
+          background: "#084261",
+          zIndex: 1000
+        }}
+        onClick={() => setShowModal(true)}
+      >
+        <img
+          src="https://cdn-icons-png.freepik.com/512/845/845216.png"
+          alt="Add"
+          style={{ width: "40px", height: "40px" }}
+        />
+      </Button>
+
+      {/* Search Bar */}
+      <div className="px-4 mb-2">
         <Row className="align-items-center">
           <Col xs={12} md={8} lg={6} className="mb-3 mb-md-0">
             <InputGroup>
@@ -95,19 +148,29 @@ export default function Home() {
               <Button variant={isDark ? "light" : "primary"}>🔍</Button>
             </InputGroup>
           </Col>
-          <Col xs={12} md={4} className="text-md-end">
-            <Button variant="outline-primary" className="me-2 mb-2" onClick={() => navigate("/library")}>
-              📚 Library
-            </Button>
-            <Button variant="outline-success" className="mb-2" onClick={() => navigate("/playlist")}>🎵 Playlist</Button>
-          </Col>
         </Row>
       </div>
 
-      <div
-        className="custom-scroll"
-        style={{ overflowY: "auto", flexGrow: 1, padding: "2rem" }}
-      >
+      {/* Playlist & Library Buttons under search */}
+      <div className="px-4 mb-3 p-2">
+        <Button
+          variant="outline-primary"
+          className="me-2 mb-2"
+          onClick={() => navigate("/library")}
+        >
+          📚 Library
+        </Button>
+        <Button
+          variant="outline-success"
+          className="mb-2"
+          onClick={() => navigate("/playlist")}
+        >
+          🎵 Playlist
+        </Button>
+      </div>
+
+      {/* Book Cards */}
+      <div className="custom-scroll" style={{ overflowY: "auto", flexGrow: 1, padding: "2rem" }}>
         {searchTerm && (
           <section className="mb-5">
             <h5 className="mb-3" style={{ color: textColor }}>Search Results</h5>
@@ -158,6 +221,37 @@ export default function Home() {
           </section>
         )}
       </div>
+
+      {/* Modal for Add Book */}
+      <Modal show={showModal} onHide={() => setShowModal(false)} centered>
+        <Modal.Header closeButton>
+          <Modal.Title>Add Book</Modal.Title>
+        </Modal.Header>
+        <Form onSubmit={handleBookSubmit}>
+          <Modal.Body>
+            <Form.Group className="mb-3">
+              <Form.Label>Book Title</Form.Label>
+              <Form.Control type="text" name="title" required />
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Author</Form.Label>
+              <Form.Control type="text" name="author" />
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Cover Image URL</Form.Label>
+              <Form.Control type="text" name="image" />
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>PDF File</Form.Label>
+              <Form.Control type="file" accept=".pdf" onChange={(e) => setPdfFile(e.target.files[0])} required />
+            </Form.Group>
+          </Modal.Body>
+          <Modal.Footer>
+            <Button variant="secondary" onClick={() => setShowModal(false)}>Cancel</Button>
+            <Button variant="primary" type="submit">Add</Button>
+          </Modal.Footer>
+        </Form>
+      </Modal>
 
       <style>{`
         .custom-scroll::-webkit-scrollbar {

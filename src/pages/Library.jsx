@@ -90,20 +90,7 @@ export default function Library() {
               <Button variant="primary">🔍</Button>
             </InputGroup>
 
-            <Form onSubmit={handleBookSubmit}>
-              <FormControl name="title" className="mb-2" placeholder="Book Title" required />
-              <FormControl name="image" className="mb-2" placeholder="Image URL" required />
-              <FormControl
-                type="file"
-                accept="application/pdf"
-                className="mb-2"
-                onChange={(e) => setPdfFile(e.target.files[0])}
-                required
-              />
-              <Button type="submit" variant="success" className="w-100">
-                ➕ Add Book
-              </Button>
-            </Form>
+          
           </Col>
         </Row>
       </Container>
