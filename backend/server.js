@@ -1,3 +1,4 @@
+require('dotenv').config(); 
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
@@ -12,10 +13,11 @@ app.use(express.json());
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 // MongoDB Bağlantısı
-mongoose.connect("mongodb+srv://fbbatuhan656:MelihMehlikaBatuhan1907@cluster0.yz0msyc.mongodb.net/BooTunes-App?retryWrites=true&w=majority&appName=Cluster0")
-  .then(() => console.log("✅ MongoDB bağlantısı başarılı"))
-  .catch((err) => console.error("❌ MongoDB bağlantı hatası:", err));
-
+mongoose.connect(process.env.MONGODB_URI, {
+    family: 4,            // SRV DNS ile IPv4’e zorlamak için
+ })
+   .then(() => console.log("✅ MongoDB bağlantısı başarılı"))
+   .catch(err => console.error("❌ MongoDB bağlantı hatası:", err.message));
 // Multer Ayarları
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
