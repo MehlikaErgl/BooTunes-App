@@ -1,8 +1,8 @@
 {
-  "name": "bootunes-ui",
+  "name": "bootunes-app",
   "version": "0.1.0",
   "private": true,
-  "homepage": "https://mehlikaergl.github.io/BooTunes-App",
+  "homepage": "https://mehlikaergl.github.io/bootunes-app",
   "dependencies": {
     "@firebasegen/default-connector": "file:dataconnect-generated/js/default-connector",
     "@testing-library/dom": "^10.4.0",
