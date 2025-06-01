@@ -23,7 +23,7 @@ function App() {
         <Route path="/settings" element={<Layout><Settings /></Layout>} />
         <Route path="/library" element={<Layout><Library /></Layout>} />
         <Route path="/playlist" element={<Layout><Playlist /></Layout>} />
-        <Route path="/ReadingBook" element={<Layout><ReadingBook /></Layout>} />
+        <Route path="/readingbook/:id" element={<Layout><ReadingBook /></Layout>} />
       </Routes>
     </Router>
   );

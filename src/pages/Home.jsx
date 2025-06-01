@@ -183,7 +183,7 @@ export default function Home() {
                       <Card.Body className="d-flex flex-column">
                         <Card.Title>{book.title}</Card.Title>
                         {book.author && <Card.Subtitle className="text-muted mb-2">{book.author}</Card.Subtitle>}
-                        <Button variant="primary" className="mt-auto" onClick={() => navigate(`/reader/${book._id}`)}>Read</Button>
+                        <Button variant="primary" className="mt-auto" onClick={() => navigate(`/readingbook/${book._id}`)}>Read</Button>
                       </Card.Body>
                     </Card>
                   </Col>
