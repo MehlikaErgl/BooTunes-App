@@ -13,35 +13,35 @@ import {
   Tabs,
   Tab,
   Form,
-  Spinner,
+  Spinner
 } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
 
 export default function Library() {
-  // 1) Keep track of controlled inputs: title, imageUrl, pdfFile, etc.
   const [searchTerm, setSearchTerm] = useState("");
   const [myBookList, setMyBookList] = useState([]);
-  const [title, setTitle] = useState("");            // Controlled book title
-  const [imageUrl, setImageUrl] = useState("");      // Controlled image URL
-  const [pdfFile, setPdfFile] = useState(null);      // Controlled PDF file
+  const [title, setTitle] = useState("");
+  const [imageUrl, setImageUrl] = useState("");
+  const [pdfFile, setPdfFile] = useState(null);
   const [isTitleConfirmed, setIsTitleConfirmed] = useState(false);
   const [loadingImage, setLoadingImage] = useState(false);
   const navigate = useNavigate();
 
-  // 2) Load current user's books on mount
-  useEffect(() => {
+  const fetchMyBooks = () => {
     const userId = localStorage.getItem("userId");
     fetch(`http://localhost:5000/api/books?userId=${userId}`)
       .then((res) => res.json())
       .then((data) => setMyBookList(data))
       .catch((err) => console.error("Kitaplar alınamadı:", err));
+  };
+
+  useEffect(() => {
+    fetchMyBooks();
   }, []);
 
-  // 3) Handle file selection: set PDF file AND auto-fill the title field (filename minus extension)
   const handlePdfChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
-
     setPdfFile(file);
     const nameWithoutExt = file.name.replace(/\.[^/.]+$/, "");
     setTitle(nameWithoutExt);
@@ -49,41 +49,34 @@ export default function Library() {
     setImageUrl("");
   };
 
-  // 4) When “Confirm Title” is clicked, call back-end to fetch an image URL via Puppeteer
   const handleConfirmTitle = async () => {
     if (!title.trim()) {
-      alert("Lütfen önce bir başlık girin veya seçin.");
+      alert("Lütfen başlık girin.");
       return;
     }
     setLoadingImage(true);
     try {
-      const response = await fetch(
-        `http://localhost:5000/api/fetchImage?query=${encodeURIComponent(title)}`
-      );
-      if (!response.ok) {
-        throw new Error("Resim getirilemedi.");
-      }
+      const response = await fetch(`http://localhost:5000/api/fetchImage?query=${encodeURIComponent(title)}`);
+      if (!response.ok) throw new Error("Resim getirilemedi.");
       const data = await response.json();
       if (data.imageUrl) {
         setImageUrl(data.imageUrl);
         setIsTitleConfirmed(true);
       } else {
-        throw new Error("Hiç resim bulunamadı.");
+        throw new Error("Resim bulunamadı.");
       }
     } catch (err) {
       console.error("❌ Resim alınamadı:", err);
-      alert("Resim bulunamadı. Lütfen manuel olarak bir URL girin.");
+      alert("Resim alınamadı, lütfen manuel girin.");
     } finally {
       setLoadingImage(false);
     }
   };
 
-  // 5) Handle final “Add Book” submission
   const handleBookSubmit = (e) => {
     e.preventDefault();
-
     if (!title.trim() || !imageUrl.trim() || !pdfFile) {
-      alert("Başlık, resim URL’si ve PDF dosyası gereklidir.");
+      alert("Başlık, resim ve PDF zorunludur.");
       return;
     }
 
@@ -91,22 +84,20 @@ export default function Library() {
     formData.append("title", title);
     formData.append("image", imageUrl);
     formData.append("pdf", pdfFile);
-    const userId = localStorage.getItem("userId");
-    formData.append("userId", userId);
+    formData.append("userId", localStorage.getItem("userId"));
 
     fetch("http://localhost:5000/api/books", {
       method: "POST",
-      body: formData,
+      body: formData
     })
       .then((res) => res.json())
-      .then((newBook) => {
-        setMyBookList((prev) => [...prev, newBook]);
-        // reset form to initial state
+      .then(() => {
+        fetchMyBooks();
         setTitle("");
         setImageUrl("");
         setPdfFile(null);
         setIsTitleConfirmed(false);
-        alert("Kitap eklendi ✅");
+        alert("Kitap başarıyla eklendi ✅");
       })
       .catch((err) => {
         console.error("❌ Kitap eklenemedi:", err);
@@ -116,7 +107,7 @@ export default function Library() {
 
   const handleRemove = (id) => {
     fetch(`http://localhost:5000/api/books/${id}`, {
-      method: "DELETE",
+      method: "DELETE"
     })
       .then((res) => {
         if (res.ok) {
@@ -126,27 +117,17 @@ export default function Library() {
       .catch((err) => console.error("Silme hatası:", err));
   };
 
-  // Filter for “My Books” tab
   const filteredBooks = myBookList.filter((book) =>
     book.title?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
-    <div
-      style={{
-        height: "100vh",
-        display: "flex",
-        flexDirection: "column",
-        backgroundColor: "#f8f9fa",
-      }}
-    >
-      {/* --- HEADER / FORM SECTION --- */}
+    <div style={{ height: "100vh", display: "flex", flexDirection: "column", backgroundColor: "#f8f9fa" }}>
       <Container fluid className="py-3" style={{ flexShrink: 0 }}>
         <h2 className="mb-3">📚 Library</h2>
 
         <Row className="justify-content-center mb-3">
           <Col xs={12} md={6} lg={4}>
-            {/* --- SEARCH BAR --- */}
             <InputGroup className="mb-2">
               <FormControl
                 placeholder="Search books..."
@@ -156,12 +137,8 @@ export default function Library() {
               <Button variant="primary">🔍</Button>
             </InputGroup>
 
-            {/* --- ADD NEW BOOK FORM --- */}
             <Form onSubmit={handleBookSubmit}>
-              {/* FILE INPUT */}
-              <Form.Label htmlFor="pdf-upload" className="mb-1">
-                Choose PDF:
-              </Form.Label>
+              <Form.Label htmlFor="pdf-upload">Choose PDF:</Form.Label>
               <Form.Control
                 id="pdf-upload"
                 type="file"
@@ -171,10 +148,7 @@ export default function Library() {
                 required
               />
 
-              {/* TITLE INPUT */}
-              <Form.Label htmlFor="book-title" className="mb-1">
-                Book Title:
-              </Form.Label>
+              <Form.Label htmlFor="book-title">Book Title:</Form.Label>
               <InputGroup className="mb-2">
                 <FormControl
                   id="book-title"
@@ -193,129 +167,47 @@ export default function Library() {
                   disabled={!title.trim() || loadingImage}
                   onClick={handleConfirmTitle}
                 >
-                  {loadingImage ? (
-                    <Spinner animation="border" size="sm" />
-                  ) : isTitleConfirmed ? (
-                    "✓ Confirmed"
-                  ) : (
-                    "Confirm Title"
-                  )}
+                  {loadingImage ? <Spinner animation="border" size="sm" /> : isTitleConfirmed ? "✓ Confirmed" : "Confirm Title"}
                 </Button>
               </InputGroup>
 
-              {/* IMAGE URL INPUT */}
-              <Form.Label htmlFor="image-url" className="mb-1">
-                Image URL:
-              </Form.Label>
+              <Form.Label htmlFor="image-url">Image URL:</Form.Label>
               <FormControl
                 id="image-url"
                 name="image"
                 value={imageUrl}
-                placeholder="Will be auto-filled after confirming title"
+                placeholder="Auto-filled or paste manually"
                 onChange={(e) => setImageUrl(e.target.value)}
                 className="mb-2"
                 required
               />
 
-              {/* FINAL SUBMIT */}
-              <Button
-                type="submit"
-                variant="success"
-                className="w-100"
-                //disabled={!isTitleConfirmed || !imageUrl.trim() || !pdfFile}
-              >
-                ➕ Add Book
-              </Button>
+              <Button type="submit" variant="success" className="w-100">➕ Add Book</Button>
             </Form>
           </Col>
         </Row>
       </Container>
 
-      {/* --- LIST OF BOOKS WITH HORIZONTAL SCROLL --- */}
       <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
-        <Tabs
-          defaultActiveKey="mybooks"
-          id="tabs"
-          className="mb-3"
-          style={{ flexShrink: 0 }}
-        >
-          <Tab
-            eventKey="mybooks"
-            title={
-              <span>
-                My Books <Badge bg="success">{myBookList.length}</Badge>
-              </span>
-            }
-          />
+        <Tabs defaultActiveKey="mybooks" className="mb-3">
+          <Tab eventKey="mybooks" title={<span>My Books <Badge bg="success">{myBookList.length}</Badge></span>} />
         </Tabs>
 
-        {/* Horizontal scroll container */}
-        <div
-          style={{
-            flex: 1,
-            overflowX: "auto",
-            overflowY: "hidden",
-            whiteSpace: "nowrap",
-            padding: "0 1rem"
-          }}
-        >
+        <div style={{ flex: 1, overflowX: "auto", overflowY: "hidden", whiteSpace: "nowrap", padding: "0 1rem" }}>
           {filteredBooks.map((book) => (
             <div
               key={book._id}
-              style={{
-                display: "inline-block",
-                verticalAlign: "top",
-                width: "180px",
-                marginRight: "1rem",
-                marginBottom: "1rem"
-              }}
+              style={{ display: "inline-block", verticalAlign: "top", width: "180px", marginRight: "1rem", marginBottom: "1rem" }}
             >
               <Card className="h-100 d-flex flex-column shadow-sm">
-                <div
-                  style={{
-                    width: "100%",
-                    height: "140px",
-                    overflow: "hidden",
-                    borderTopLeftRadius: "0.25rem",
-                    borderTopRightRadius: "0.25rem"
-                  }}
-                >
-                  <Card.Img
-                    src={book.image}
-                    alt={book.title}
-                    style={{
-                      width: "100%",
-                      height: "100%",
-                      objectFit: "cover"
-                    }}
-                  />
+                <div style={{ width: "100%", height: "140px", overflow: "hidden", borderTopLeftRadius: "0.25rem", borderTopRightRadius: "0.25rem" }}>
+                  <Card.Img src={book.image} alt={book.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                 </div>
                 <Card.Body className="d-flex flex-column p-2">
-                  <Card.Title
-                    className="text-center"
-                    style={{
-                      fontSize: "0.9rem",
-                      whiteSpace: "normal",
-                      lineHeight: "1.2"
-                    }}
-                  >
-                    {book.title}
-                  </Card.Title>
+                  <Card.Title className="text-center" style={{ fontSize: "0.9rem", whiteSpace: "normal", lineHeight: "1.2" }}>{book.title}</Card.Title>
                   <div className="mt-auto d-grid gap-1">
-                    <Button
-                      variant="outline-primary"
-                      size="sm"
-                      onClick={() => navigate(`/readingbook/${book._id}`)}
-                    >
-                      📖 Read
-                    </Button>
-                    <Button
-                      variant="outline-danger"
-                      size="sm"
-                      onClick={() => handleRemove(book._id)}
-                    >
-                      ❌ Remove
-                    </Button>
+                    <Button variant="outline-primary" size="sm" onClick={() => navigate(`/readingbook/${book._id}`)}>📖 Read</Button>
+                    <Button variant="outline-danger" size="sm" onClick={() => handleRemove(book._id)}>❌ Remove</Button>
                   </div>
                 </Card.Body>
               </Card>

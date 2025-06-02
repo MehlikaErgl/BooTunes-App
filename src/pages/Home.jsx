@@ -1,3 +1,5 @@
+// src/pages/Home.jsx
+
 import React, { useState, useEffect } from "react";
 import {
   Container,
@@ -10,7 +12,7 @@ import {
   Badge,
   Alert,
   Modal,
-  Form,
+  Form
 } from "react-bootstrap";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
@@ -24,6 +26,16 @@ export default function Home() {
   const [recommendedBooks] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [pdfFile, setPdfFile] = useState(null);
+  const [title, setTitle] = useState("");
+  const [image, setImage] = useState("");
+
+  const fetchBooks = () => {
+    const userId = localStorage.getItem("userId");
+    fetch(`http://localhost:5000/api/books?userId=${userId}`)
+      .then((res) => res.json())
+      .then((data) => setReadingBooks(data))
+      .catch((err) => console.error("Kitaplar alınamadı", err));
+  };
 
   useEffect(() => {
     const observer = new MutationObserver(() => {
@@ -34,29 +46,38 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    const userId = localStorage.getItem("userId");
-    fetch(`http://localhost:5000/api/books?userId=${userId}`)
-      .then(res => res.json())
-      .then(data => setReadingBooks(data))
-      .catch(err => console.error("Kitaplar alınamadı", err));
+    fetchBooks();
   }, []);
+
+  const handlePdfChange = (e) => {
+    const file = e.target.files[0];
+    setPdfFile(file);
+    if (file) {
+      const nameWithoutExt = file.name.replace(/\.[^/.]+$/, "");
+      setTitle(nameWithoutExt);
+    }
+  };
 
   const handleBookSubmit = (e) => {
     e.preventDefault();
-    const formData = new FormData(e.target);
+    const formData = new FormData();
     const userId = localStorage.getItem("userId");
     formData.append("userId", userId);
     formData.append("pdf", pdfFile);
+    formData.append("title", title);
+    formData.append("image", image);
 
     fetch("http://localhost:5000/api/books", {
       method: "POST",
-      body: formData,
+      body: formData
     })
       .then((res) => res.json())
-      .then((newBook) => {
-        setReadingBooks((prev) => [...prev, newBook]);
+      .then(() => {
+        fetchBooks();
+        setPdfFile(null);
+        setTitle("");
+        setImage("");
         setShowModal(false);
-        e.target.reset();
         alert("Kitap eklendi ✅");
       })
       .catch((err) => {
@@ -67,7 +88,7 @@ export default function Home() {
 
   const allBooks = [...readingBooks, ...recommendedBooks];
   const filteredBooks = allBooks.filter((book) =>
-    book.title.toLowerCase().includes(searchTerm.toLowerCase())
+    book.title?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const isDark = theme === "dark";
@@ -80,20 +101,7 @@ export default function Home() {
   };
 
   return (
-    <Container
-      fluid
-      className="py-1 px-0 position-relative"
-      style={{
-        height: "100%",
-        overflow: "hidden",
-        display: "flex",
-        flexDirection: "column",
-        backgroundColor: contentBg,
-        backdropFilter: isDark ? "blur(6px)" : undefined,
-        color: textColor,
-      }}
-    >
-      {/* Welcome Message */}
+    <Container fluid className="py-1 px-0 position-relative" style={{ height: "100%", overflow: "hidden", display: "flex", flexDirection: "column", backgroundColor: contentBg, backdropFilter: isDark ? "blur(6px)" : undefined, color: textColor }}>
       <div className="py-0 px-4">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
           <div className="d-inline-block p-2 my-3 rounded" style={blurStyle}>
@@ -104,28 +112,10 @@ export default function Home() {
         </motion.div>
       </div>
 
-      {/* Add Button (Fixed Position) */}
-      <Button
-        variant="primary"
-        className="position-absolute rounded-circle d-flex justify-content-center align-items-center"
-        style={{
-          width: "80px",
-          height: "80px",
-          top: "20px",
-          right: "20px",
-          background: "#084261",
-          zIndex: 1000
-        }}
-        onClick={() => setShowModal(true)}
-      >
-        <img
-          src="https://cdn-icons-png.freepik.com/512/845/845216.png"
-          alt="Add"
-          style={{ width: "40px", height: "40px" }}
-        />
+      <Button variant="primary" className="position-absolute rounded-circle d-flex justify-content-center align-items-center" style={{ width: "80px", height: "80px", top: "20px", right: "20px", background: "#084261", zIndex: 1000 }} onClick={() => setShowModal(true)}>
+        <img src="https://cdn-icons-png.freepik.com/512/845/845216.png" alt="Add" style={{ width: "40px", height: "40px" }} />
       </Button>
 
-      {/* Search Bar */}
       <div className="px-4 mb-2">
         <Row className="align-items-center">
           <Col xs={12} md={8} lg={6} className="mb-3 mb-md-0">
@@ -135,15 +125,7 @@ export default function Home() {
                 aria-label="Search books"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                style={
-                  isDark
-                    ? {
-                        backgroundColor: "#6a6a6a",
-                        color: "#ffffff",
-                        border: "1px solid #555",
-                      }
-                    : {}
-                }
+                style={isDark ? { backgroundColor: "#6a6a6a", color: "#ffffff", border: "1px solid #555" } : {}}
               />
               <Button variant={isDark ? "light" : "primary"}>🔍</Button>
             </InputGroup>
@@ -151,25 +133,11 @@ export default function Home() {
         </Row>
       </div>
 
-      {/* Playlist & Library Buttons under search */}
       <div className="px-4 mb-3 p-2">
-        <Button
-          variant="outline-primary"
-          className="me-2 mb-2"
-          onClick={() => navigate("/library")}
-        >
-          📚 Library
-        </Button>
-        <Button
-          variant="outline-success"
-          className="mb-2"
-          onClick={() => navigate("/playlist")}
-        >
-          🎵 Playlist
-        </Button>
+        <Button variant="outline-primary" className="me-2 mb-2" onClick={() => navigate("/library")}>📚 Library</Button>
+        <Button variant="outline-success" className="mb-2" onClick={() => navigate("/playlist")}>🎵 Playlist</Button>
       </div>
 
-      {/* Book Cards */}
       <div className="custom-scroll" style={{ overflowY: "auto", flexGrow: 1, padding: "2rem" }}>
         {searchTerm && (
           <section className="mb-5">
@@ -211,7 +179,7 @@ export default function Home() {
                       </div>
                       <Card.Body className="d-flex flex-column">
                         <Card.Title className="mb-3">{book.title}</Card.Title>
-                        <Button variant="primary" className="mt-auto" onClick={() => navigate(`/reader/${book._id}`)}>Continue</Button>
+                        <Button variant="primary" className="mt-auto" onClick={() => navigate(`/readingbook/${book._id}`)}>Continue</Button>
                       </Card.Body>
                     </Card>
                   </motion.div>
@@ -222,7 +190,6 @@ export default function Home() {
         )}
       </div>
 
-      {/* Modal for Add Book */}
       <Modal show={showModal} onHide={() => setShowModal(false)} centered>
         <Modal.Header closeButton>
           <Modal.Title>Add Book</Modal.Title>
@@ -231,19 +198,15 @@ export default function Home() {
           <Modal.Body>
             <Form.Group className="mb-3">
               <Form.Label>Book Title</Form.Label>
-              <Form.Control type="text" name="title" required />
-            </Form.Group>
-            <Form.Group className="mb-3">
-              <Form.Label>Author</Form.Label>
-              <Form.Control type="text" name="author" />
+              <Form.Control type="text" value={title} onChange={(e) => setTitle(e.target.value)} required />
             </Form.Group>
             <Form.Group className="mb-3">
               <Form.Label>Cover Image URL</Form.Label>
-              <Form.Control type="text" name="image" />
+              <Form.Control type="text" value={image} onChange={(e) => setImage(e.target.value)} />
             </Form.Group>
             <Form.Group className="mb-3">
               <Form.Label>PDF File</Form.Label>
-              <Form.Control type="file" accept=".pdf" onChange={(e) => setPdfFile(e.target.files[0])} required />
+              <Form.Control type="file" accept=".pdf" onChange={handlePdfChange} required />
             </Form.Group>
           </Modal.Body>
           <Modal.Footer>
@@ -254,16 +217,9 @@ export default function Home() {
       </Modal>
 
       <style>{`
-        .custom-scroll::-webkit-scrollbar {
-          width: 8px;
-        }
-        .custom-scroll::-webkit-scrollbar-thumb {
-          background-color: ${isDark ? "#555" : "#ccc"};
-          border-radius: 4px;
-        }
-        .custom-scroll::-webkit-scrollbar-track {
-          background-color: ${isDark ? "#2f2f2f" : "#f1f1f1"};
-        }
+        .custom-scroll::-webkit-scrollbar { width: 8px; }
+        .custom-scroll::-webkit-scrollbar-thumb { background-color: ${isDark ? "#555" : "#ccc"}; border-radius: 4px; }
+        .custom-scroll::-webkit-scrollbar-track { background-color: ${isDark ? "#2f2f2f" : "#f1f1f1"}; }
       `}</style>
     </Container>
   );
