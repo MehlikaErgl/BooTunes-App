@@ -1,5 +1,3 @@
-// src/pages/Home.jsx
-
 import React, { useState, useEffect } from "react";
 import {
   Container,
@@ -10,24 +8,24 @@ import {
   InputGroup,
   FormControl,
   Badge,
-  Alert,
-  Modal,
-  Form
+  Alert
 } from "react-bootstrap";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
+import { useUserSettings } from "../context/UserSettingsContext";
 
 export default function Home() {
   const navigate = useNavigate();
   const username = localStorage.getItem("username") || "Reader";
-  const [theme, setTheme] = useState(document.body.getAttribute("data-theme") || "light");
   const [readingBooks, setReadingBooks] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [recommendedBooks] = useState([]);
-  const [showModal, setShowModal] = useState(false);
-  const [pdfFile, setPdfFile] = useState(null);
-  const [title, setTitle] = useState("");
-  const [image, setImage] = useState("");
+  const [theme, setTheme] = useState(document.body.getAttribute("data-theme") || "light");
+  const isDark = theme === "dark";
+
+  const { settings } = useUserSettings();
+  const { fontSize, fontFamily, lineHeight } = settings;
+
 
   const fetchBooks = () => {
     const userId = localStorage.getItem("userId");
@@ -49,49 +47,11 @@ export default function Home() {
     fetchBooks();
   }, []);
 
-  const handlePdfChange = (e) => {
-    const file = e.target.files[0];
-    setPdfFile(file);
-    if (file) {
-      const nameWithoutExt = file.name.replace(/\.[^/.]+$/, "");
-      setTitle(nameWithoutExt);
-    }
-  };
-
-  const handleBookSubmit = (e) => {
-    e.preventDefault();
-    const formData = new FormData();
-    const userId = localStorage.getItem("userId");
-    formData.append("userId", userId);
-    formData.append("pdf", pdfFile);
-    formData.append("title", title);
-    formData.append("image", image);
-
-    fetch("http://localhost:5000/api/books", {
-      method: "POST",
-      body: formData
-    })
-      .then((res) => res.json())
-      .then(() => {
-        fetchBooks();
-        setPdfFile(null);
-        setTitle("");
-        setImage("");
-        setShowModal(false);
-        alert("Kitap eklendi ✅");
-      })
-      .catch((err) => {
-        console.error("❌ Kitap eklenemedi:", err);
-        alert("Kitap eklenemedi");
-      });
-  };
-
   const allBooks = [...readingBooks, ...recommendedBooks];
   const filteredBooks = allBooks.filter((book) =>
     book.title?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const isDark = theme === "dark";
   const contentBg = isDark ? "rgba(51, 46, 46, 0.4)" : undefined;
   const cardBg = isDark ? "rgba(255,255,255,0.08)" : "#ffffff";
   const textColor = isDark ? "#f1f1f1" : "#222";
@@ -101,7 +61,22 @@ export default function Home() {
   };
 
   return (
-    <Container fluid className="py-1 px-0 position-relative" style={{ height: "100%", overflow: "hidden", display: "flex", flexDirection: "column", backgroundColor: contentBg, backdropFilter: isDark ? "blur(6px)" : undefined, color: textColor }}>
+    <Container
+      fluid
+      className="py-1 px-0 position-relative"
+      style={{
+        height: "100%",
+        overflow: "hidden",
+        display: "flex",
+        flexDirection: "column",
+        backgroundColor: contentBg,
+        backdropFilter: isDark ? "blur(6px)" : undefined,
+        color: textColor,
+        fontFamily,
+        fontSize,
+        lineHeight
+      }}
+    >
       <div className="py-0 px-4">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
           <div className="d-inline-block p-2 my-3 rounded" style={blurStyle}>
@@ -112,10 +87,6 @@ export default function Home() {
         </motion.div>
       </div>
 
-      <Button variant="primary" className="position-absolute rounded-circle d-flex justify-content-center align-items-center" style={{ width: "80px", height: "80px", top: "20px", right: "20px", background: "#084261", zIndex: 1000 }} onClick={() => setShowModal(true)}>
-        <img src="https://cdn-icons-png.freepik.com/512/845/845216.png" alt="Add" style={{ width: "40px", height: "40px" }} />
-      </Button>
-
       <div className="px-4 mb-2">
         <Row className="align-items-center">
           <Col xs={12} md={8} lg={6} className="mb-3 mb-md-0">
@@ -125,7 +96,15 @@ export default function Home() {
                 aria-label="Search books"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                style={isDark ? { backgroundColor: "#6a6a6a", color: "#ffffff", border: "1px solid #555" } : {}}
+                style={
+                  isDark
+                    ? {
+                        backgroundColor: "#6a6a6a",
+                        color: "#ffffff",
+                        border: "1px solid #555"
+                      }
+                    : {}
+                }
               />
               <Button variant={isDark ? "light" : "primary"}>🔍</Button>
             </InputGroup>
@@ -189,32 +168,6 @@ export default function Home() {
           </section>
         )}
       </div>
-
-      <Modal show={showModal} onHide={() => setShowModal(false)} centered>
-        <Modal.Header closeButton>
-          <Modal.Title>Add Book</Modal.Title>
-        </Modal.Header>
-        <Form onSubmit={handleBookSubmit}>
-          <Modal.Body>
-            <Form.Group className="mb-3">
-              <Form.Label>Book Title</Form.Label>
-              <Form.Control type="text" value={title} onChange={(e) => setTitle(e.target.value)} required />
-            </Form.Group>
-            <Form.Group className="mb-3">
-              <Form.Label>Cover Image URL</Form.Label>
-              <Form.Control type="text" value={image} onChange={(e) => setImage(e.target.value)} />
-            </Form.Group>
-            <Form.Group className="mb-3">
-              <Form.Label>PDF File</Form.Label>
-              <Form.Control type="file" accept=".pdf" onChange={handlePdfChange} required />
-            </Form.Group>
-          </Modal.Body>
-          <Modal.Footer>
-            <Button variant="secondary" onClick={() => setShowModal(false)}>Cancel</Button>
-            <Button variant="primary" type="submit">Add</Button>
-          </Modal.Footer>
-        </Form>
-      </Modal>
 
       <style>{`
         .custom-scroll::-webkit-scrollbar { width: 8px; }

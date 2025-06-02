@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useContext } from "react";
 import {
   Button,
   Card,
@@ -10,12 +10,10 @@ import {
   Modal
 } from "react-bootstrap";
 import { useNavigate, useParams } from "react-router-dom";
+import { useUserSettings } from "../context/UserSettingsContext";
 
 export default function ReadingBook() {
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [playlist, setPlaylist] = useState("general");
   const [theme, setTheme] = useState(localStorage.getItem("theme") || "light");
-  const [isAdded, setIsAdded] = useState(false);
   const [chapters, setChapters] = useState([]);
   const [selectedContent, setSelectedContent] = useState("");
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -24,9 +22,12 @@ export default function ReadingBook() {
   const [summaryResult, setSummaryResult] = useState("");
   const [summarySelectModal, setSummarySelectModal] = useState(false);
   const [selectedChapterToSummarize, setSelectedChapterToSummarize] = useState("");
+  
 
   const navigate = useNavigate();
   const { id } = useParams();
+  const { settings } = useUserSettings();
+  const { fontSize, fontFamily, lineHeight } = settings;
 
   useEffect(() => {
     const observer = new MutationObserver(() => {
@@ -57,17 +58,20 @@ export default function ReadingBook() {
       .then((res) => res.json())
       .then((data) => {
         setChapters(data);
+
+        const saved = localStorage.getItem(`readingProgress_${id}`);
+        const savedIndex = saved ? parseInt(saved) : 0;
+
         if (data.length > 0) {
-          setCurrentIndex(0);
-          loadChapter(data[0]);
+          setCurrentIndex(savedIndex);
+          loadChapter(data[savedIndex]);
         }
       })
       .catch((err) => console.error("Bölümler alınamadı:", err));
   }, [id, loadChapter]);
 
   const isDark = theme === "dark";
-  const handlePlayPause = () => setIsPlaying((prev) => !prev);
-  const handleBack = () => navigate("/reader");
+  const handleBack = () => navigate("/library");
 
   const handleNext = () => {
     if (currentIndex < chapters.length - 1) {
@@ -87,7 +91,7 @@ export default function ReadingBook() {
 
   const requestSummary = async (filename) => {
     setSummaryModal(true);
-    setSummaryResult("Özetleniyor...");
+    setSummaryResult("Summarizing...");
     try {
       const res = await fetch(`http://localhost:5000/api/chapters/${id}/${filename}`);
       const data = await res.json();
@@ -98,10 +102,15 @@ export default function ReadingBook() {
       });
       const result = await response.json();
       if (result.summary) setSummaryResult(result.summary);
-      else setSummaryResult("Özetleme başarısız: " + result.error);
+      else setSummaryResult("Summary failed: " + result.error);
     } catch (err) {
       setSummaryResult("Sunucu hatası: " + err.message);
     }
+  };
+
+  const saveProgress = () => {
+    localStorage.setItem(`readingProgress_${id}`, currentIndex);
+    alert("Progress saved ✅");
   };
 
   const contentBg = isDark ? "#181818" : "#f5f1eb";
@@ -116,55 +125,57 @@ export default function ReadingBook() {
             <Card.Header className="d-flex justify-content-between align-items-center border-bottom sticky-top" style={{ backgroundColor: headerBg, color: textColor, zIndex: 10 }}>
               <Button variant={isDark ? "secondary" : "light"} onClick={handleBack}>Back</Button>
               <div className="d-flex gap-2">
-                <Button variant={isDark ? "outline-light" : "outline-secondary"} onClick={() => setSummarySelectModal(true)}>📄 Özetle</Button>
-                <Button variant={isDark ? "outline-light" : "outline-secondary"} onClick={() => alert("Saved!")}>Save</Button>
+                <Button variant={isDark ? "outline-light" : "outline-secondary"} onClick={() => setSummarySelectModal(true)}>📄 Summary</Button>
+                <Button variant={isDark ? "outline-light" : "outline-secondary"} onClick={saveProgress}>Save</Button>
               </div>
             </Card.Header>
 
             <div className="px-4 py-3 border-bottom d-flex justify-content-between align-items-center" style={{ backgroundColor: headerBg, color: textColor }}>
-              <h4 className="mb-0" style={{ fontFamily: 'Merriweather, Georgia, serif' }}>{chapters[currentIndex]?.replace(".txt", "").replace(/_/g, " ")}</h4>
+              <h4 className="mb-0" style={{ fontFamily: settings.fontFamily || 'Merriweather, serif' }}>
+                {chapters[currentIndex]?.replace(".txt", "").replace(/_/g, " ")}
+              </h4>
               <div className="d-flex gap-2">
                 <Button size="sm" onClick={handlePrev} disabled={currentIndex === 0}>&larr; Previous</Button>
                 <Button size="sm" onClick={handleNext} disabled={currentIndex === chapters.length - 1}>Next &rarr;</Button>
               </div>
             </div>
 
-            <div style={{ flex: 1, overflowY: "auto", maxHeight: "calc(100vh - 250px)", backgroundColor: contentBg, padding: "2.5rem 3rem", color: textColor }} className="custom-scroll">
-              {loading ? <Spinner animation="border" /> : <pre style={{ whiteSpace: "pre-wrap", lineHeight: 1.8, fontSize: "18px", fontFamily: 'Georgia, serif' }}>{selectedContent}</pre>}
+            <div style={{
+              flex: 1,
+              overflowY: "auto",
+              maxHeight: "calc(100vh - 250px)",
+              backgroundColor: contentBg,
+              padding: "2.5rem 3rem",
+              color: textColor
+            }} className="custom-scroll">
+              {loading ? (
+                <Spinner animation="border" />
+              ) : (
+                <pre
+                  style={{
+                    whiteSpace: "pre-wrap",
+                    fontFamily: settings.fontFamily || "Georgia, serif",
+                    fontSize: settings.fontSize === "small" ? "14px" :
+                              settings.fontSize === "large" ? "22px" : "18px",
+                    lineHeight: settings.lineHeight || 1.8,
+                  }}
+                >
+                  {selectedContent}
+                </pre>
+              )}
             </div>
           </Card>
         </Col>
       </Row>
 
-      <div className="position-fixed bottom-0 start-0 end-0 d-flex justify-content-between align-items-center px-4" style={{ height: "70px", backgroundColor: "#000", color: "#fff", zIndex: 1200 }}>
-        <div className="d-flex align-items-center gap-3">
-          <img src="https://picsum.photos/200/200?random=31" alt="cover" style={{ width: "50px", height: "50px", borderRadius: "0.5rem", objectFit: "cover" }} />
-          <div>
-            <div style={{ fontWeight: "bold" }}>Locked Eyes</div>
-            <div style={{ fontSize: "0.8rem", color: "#ccc" }}>Mystery Friends</div>
-          </div>
-        </div>
-        <div className="d-flex align-items-center gap-3">
-          <Button variant="outline-light" size="sm" style={{ borderRadius: "50%", width: "36px", height: "36px" }}>&#9664;</Button>
-          <Button variant="light" size="sm" style={{ borderRadius: "50%", width: "48px", height: "48px" }} onClick={handlePlayPause}>{isPlaying ? "❚❚" : "▶"}</Button>
-          <Button variant="outline-light" size="sm" style={{ borderRadius: "50%", width: "36px", height: "36px" }}>&#9654;</Button>
-        </div>
-        <div className="d-flex align-items-center gap-3">
-          <Form.Select size="sm" value={playlist} onChange={(e) => setPlaylist(e.target.value)} style={{ maxWidth: "150px", backgroundColor: "#1f1f1f", color: "#fff", borderColor: "#333", borderRadius: "0.375rem", height: "36px" }}>
-            <option value="general">🎵 General Playlist</option>
-            <option value="my">🎶 My Playlist</option>
-          </Form.Select>
-          <Button variant="outline-light" size="sm" style={{ height: "36px", width: "70px", borderRadius: "0.375rem", fontSize: "0.85rem", padding: 0 }} onClick={() => setIsAdded(true)} disabled={isAdded}>{isAdded ? "added" : "add+"}</Button>
-        </div>
-      </div>
-
+      {/* Summary modal seçici */}
       <Modal show={summarySelectModal} onHide={() => setSummarySelectModal(false)} centered>
         <Modal.Header closeButton>
-          <Modal.Title>Hangi bölümü özetlemek istersiniz?</Modal.Title>
+          <Modal.Title>Which chapter would you like to summarize?</Modal.Title>
         </Modal.Header>
         <Modal.Body>
           <Form.Select value={selectedChapterToSummarize} onChange={(e) => setSelectedChapterToSummarize(e.target.value)} className="mb-3">
-            <option value="">Bölüm Seçiniz</option>
+            <option value="">Select a Chapter</option>
             {chapters.map((ch, idx) => (
               <option key={idx} value={ch}>{ch.replace(".txt", "").replace(/_/g, " ")}</option>
             ))}
@@ -175,16 +186,16 @@ export default function ReadingBook() {
               requestSummary(selectedChapterToSummarize);
             }
           }} disabled={!selectedChapterToSummarize}>
-            Özetle
+            Summarize
           </Button>
         </Modal.Body>
       </Modal>
 
       <Modal show={summaryModal} onHide={() => setSummaryModal(false)} centered size="lg">
         <Modal.Header closeButton>
-          <Modal.Title>Bölüm Özeti</Modal.Title>
+          <Modal.Title>Chapter Summary</Modal.Title>
         </Modal.Header>
-        <Modal.Body style={{ whiteSpace: "pre-wrap", fontFamily: 'Georgia, serif' }}>
+        <Modal.Body style={{ whiteSpace: "pre-wrap", fontFamily: settings.fontFamily || 'Georgia, serif' }}>
           {summaryResult}
         </Modal.Body>
       </Modal>

@@ -14,6 +14,7 @@ import chillPhoto from "../assets/chill.png";
 import classicPhoto from "../assets/classic.png";
 import popPhoto from "../assets/pop.png";
 import rockPhoto from "../assets/rock.png";
+import { useUserSettings } from "../context/UserSettingsContext";
 
 const categories = [
   { name: "Jazz", image: jazzPhoto },
@@ -56,7 +57,9 @@ function Playlist() {
   const [myPlaylist, setMyPlaylist] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [alertMsg, setAlertMsg] = useState(null);
-  const [theme, setTheme] = useState(localStorage.getItem("theme") || "light");
+  const [theme, setTheme] = useState(document.body.getAttribute("data-theme") || "light");
+
+  const { fontSize, fontFamily, lineHeight } = useUserSettings(); // context'ten çekiyoruz
 
   useEffect(() => {
     const observer = new MutationObserver(() => {
@@ -107,9 +110,11 @@ function Playlist() {
         display: "flex",
         flexDirection: "column",
         color: textColor,
+        fontFamily,
+        fontSize,
+        lineHeight,
       }}
     >
-      {/* Header */}
       <div className="px-4 pt-4" style={{ flexShrink: 0 }}>
         <h2 className="fw-bold text-center py-3 px-4 rounded" style={blurBox}>
           🎵 Musics
@@ -146,7 +151,6 @@ function Playlist() {
         </Row>
       </div>
 
-      {/* Scrollable Content */}
       <Container
         fluid
         className={isDark ? "playlist-scroll-dark" : ""}
@@ -154,17 +158,16 @@ function Playlist() {
           overflowY: "auto",
           flex: 1,
           padding: "1rem 2rem",
-          scrollbarColor: isDark ? "#888 #2b2b2b" : undefined,
-          scrollbarWidth: isDark ? "thin" : undefined,
         }}
       >
+        {/* Category Cards */}
         {!showMyPlaylist && !selectedCategory && (
           <Row className="mb-4">
             {categories.map((cat, idx) => (
               <Col md={6} key={idx} className="mb-4">
                 <Card
                   onClick={() => setSelectedCategory(cat.name)}
-                  className="shadow-sm hover-shadow cursor-pointer"
+                  className="shadow-sm cursor-pointer"
                   style={{ cursor: "pointer", backgroundColor: cardBg, color: textColor }}
                 >
                   <Card.Img variant="top" src={cat.image} height={200} style={{ objectFit: "cover" }} />
@@ -177,6 +180,7 @@ function Playlist() {
           </Row>
         )}
 
+        {/* Songs List */}
         {!showMyPlaylist && selectedCategory && (
           <>
             <h4 className="mb-3">{selectedCategory} Songs</h4>
@@ -212,6 +216,7 @@ function Playlist() {
           </>
         )}
 
+        {/* My Playlist */}
         {showMyPlaylist && (
           <>
             <InputGroup className="mb-4">
@@ -257,7 +262,6 @@ function Playlist() {
         )}
       </Container>
 
-      {/* Scrollbar style injection */}
       {isDark && (
         <style>{`
           .playlist-scroll-dark::-webkit-scrollbar {

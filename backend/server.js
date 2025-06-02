@@ -8,6 +8,8 @@ const fs = require("fs");
 const { exec } = require("child_process");
 const puppeteer = require("puppeteer-extra");
 const StealthPlugin = require("puppeteer-extra-plugin-stealth");
+const LastRead = require("./models/LastRead");
+const settingsRoutes = require("./routes/settings");
 puppeteer.use(StealthPlugin());
 
 const app = express();
@@ -22,6 +24,9 @@ app.use(cors());
 app.use(express.json());
 app.use("/uploads", express.static(uploadsPath));
 app.use("/chapters", express.static(chaptersPath));
+app.use("/api/settings", settingsRoutes);
+app.use("/api/settings", require("./routes/settings"));
+
 
 mongoose.connect(process.env.MONGODB_URI, { family: 4 })
   .then(() => console.log("✅ MongoDB bağlantısı başarılı"))
@@ -33,7 +38,7 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
-const User = mongoose.model("User", new mongoose.Schema({ email: String, password: String }));
+const User = require("./models/User");
 const Book = mongoose.model("Book", new mongoose.Schema({ title: String, image: String, pdfUrl: String, userId: String }));
 
 app.post("/api/register", async (req, res) => {
@@ -177,6 +182,49 @@ app.get("/api/fetchImage", async (req, res) => {
     if (browser) await browser.close();
   }
 });
+
+app.post("/api/lastread/save", async (req, res) => {
+  const { userId, bookId, chapter } = req.body;
+
+  if (!userId || !bookId || !chapter) {
+    return res.status(400).json({ message: "Missing required fields." });
+  }
+
+  try {
+    const existing = await LastRead.findOne({ userId, bookId });
+    if (existing) {
+      existing.chapter = chapter;
+      existing.timestamp = Date.now();
+      await existing.save();
+    } else {
+      await LastRead.create({ userId, bookId, chapter });
+    }
+    res.status(200).json({ message: "Progress saved." });
+  } catch (err) {
+    console.error("❌ LastRead save failed:", err);
+    res.status(500).json({ message: "Failed to save progress." });
+  }
+});
+
+app.get("/api/lastread", async (req, res) => {
+  const { userId, bookId } = req.query;
+  if (!userId || !bookId) {
+    return res.status(400).json({ message: "Missing query parameters." });
+  }
+
+  try {
+    const record = await LastRead.findOne({ userId, bookId });
+    if (record) {
+      res.json({ chapter: record.chapter });
+    } else {
+      res.json({ chapter: null });
+    }
+  } catch (err) {
+    console.error("❌ LastRead fetch failed:", err);
+    res.status(500).json({ message: "Failed to fetch last read." });
+  }
+});
+
 
 const PORT = 5000;
 app.listen(PORT, () => {

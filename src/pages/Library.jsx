@@ -1,5 +1,3 @@
-// src/pages/Library.jsx
-
 import React, { useState, useEffect } from "react";
 import {
   Container,
@@ -13,11 +11,15 @@ import {
   Tabs,
   Tab,
   Form,
-  Spinner
+  Spinner,
 } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
+import { useUserSettings } from "../context/UserSettingsContext";
 
 export default function Library() {
+  const { settings } = useUserSettings();
+  const { fontSize, fontFamily, lineHeight } = settings;
+
   const [searchTerm, setSearchTerm] = useState("");
   const [myBookList, setMyBookList] = useState([]);
   const [title, setTitle] = useState("");
@@ -57,14 +59,11 @@ export default function Library() {
     setLoadingImage(true);
     try {
       const response = await fetch(`http://localhost:5000/api/fetchImage?query=${encodeURIComponent(title)}`);
-      if (!response.ok) throw new Error("Resim getirilemedi.");
       const data = await response.json();
       if (data.imageUrl) {
         setImageUrl(data.imageUrl);
         setIsTitleConfirmed(true);
-      } else {
-        throw new Error("Resim bulunamadı.");
-      }
+      } else throw new Error("Resim bulunamadı.");
     } catch (err) {
       console.error("❌ Resim alınamadı:", err);
       alert("Resim alınamadı, lütfen manuel girin.");
@@ -122,7 +121,18 @@ export default function Library() {
   );
 
   return (
-    <div style={{ height: "100vh", display: "flex", flexDirection: "column", backgroundColor: "#f8f9fa" }}>
+    <div
+      style={{
+        height: "100vh",
+        display: "flex",
+        flexDirection: "column",
+        backgroundColor: "#121212",
+        color: "#f1f1f1",
+        fontFamily,
+        fontSize,
+        lineHeight
+      }}
+    >
       <Container fluid className="py-3" style={{ flexShrink: 0 }}>
         <h2 className="mb-3">📚 Library</h2>
 
@@ -133,6 +143,7 @@ export default function Library() {
                 placeholder="Search books..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
+                style={{ backgroundColor: '#2a2a2a', color: '#f1f1f1', border: '1px solid #555' }}
               />
               <Button variant="primary">🔍</Button>
             </InputGroup>
@@ -146,6 +157,7 @@ export default function Library() {
                 className="mb-2"
                 onChange={handlePdfChange}
                 required
+                style={{ backgroundColor: '#2a2a2a', color: '#f1f1f1', border: '1px solid #555' }}
               />
 
               <Form.Label htmlFor="book-title">Book Title:</Form.Label>
@@ -161,6 +173,7 @@ export default function Library() {
                     setImageUrl("");
                   }}
                   required
+                  style={{ backgroundColor: '#2a2a2a', color: '#f1f1f1', border: '1px solid #555' }}
                 />
                 <Button
                   variant={isTitleConfirmed ? "success" : "outline-secondary"}
@@ -180,6 +193,7 @@ export default function Library() {
                 onChange={(e) => setImageUrl(e.target.value)}
                 className="mb-2"
                 required
+                style={{ backgroundColor: '#2a2a2a', color: '#f1f1f1', border: '1px solid #555' }}
               />
 
               <Button type="submit" variant="success" className="w-100">➕ Add Book</Button>
@@ -195,16 +209,11 @@ export default function Library() {
 
         <div style={{ flex: 1, overflowX: "auto", overflowY: "hidden", whiteSpace: "nowrap", padding: "0 1rem" }}>
           {filteredBooks.map((book) => (
-            <div
-              key={book._id}
-              style={{ display: "inline-block", verticalAlign: "top", width: "180px", marginRight: "1rem", marginBottom: "1rem" }}
-            >
-              <Card className="h-100 d-flex flex-column shadow-sm">
-                <div style={{ width: "100%", height: "140px", overflow: "hidden", borderTopLeftRadius: "0.25rem", borderTopRightRadius: "0.25rem" }}>
-                  <Card.Img src={book.image} alt={book.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                </div>
+            <div key={book._id} style={{ display: "inline-block", verticalAlign: "top", width: "180px", marginRight: "1rem", marginBottom: "1rem" }}>
+              <Card className="h-100 d-flex flex-column shadow-sm" style={{ backgroundColor: "#1c1c1c", color: "#f1f1f1" }}>
+                <Card.Img variant="top" src={book.image} style={{ height: "140px", objectFit: "cover" }} />
                 <Card.Body className="d-flex flex-column p-2">
-                  <Card.Title className="text-center" style={{ fontSize: "0.9rem", whiteSpace: "normal", lineHeight: "1.2" }}>{book.title}</Card.Title>
+                  <Card.Title className="text-center" style={{ fontSize: "0.9rem", whiteSpace: "normal" }}>{book.title}</Card.Title>
                   <div className="mt-auto d-grid gap-1">
                     <Button variant="outline-primary" size="sm" onClick={() => navigate(`/readingbook/${book._id}`)}>📖 Read</Button>
                     <Button variant="outline-danger" size="sm" onClick={() => handleRemove(book._id)}>❌ Remove</Button>
@@ -215,6 +224,24 @@ export default function Library() {
           ))}
         </div>
       </div>
+
+      <style>{`
+        input[type="file"]::file-selector-button {
+          background-color: #444;
+          color: white;
+          border: none;
+          padding: 6px 12px;
+          border-radius: 5px;
+        }
+        .nav-tabs .nav-link.active {
+          background-color: #444 !important;
+          color: white !important;
+          border-color: #444 !important;
+        }
+        .nav-tabs .nav-link {
+          color: #aaa;
+        }
+      `}</style>
     </div>
   );
 }

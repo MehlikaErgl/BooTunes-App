@@ -1,12 +1,16 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { Container, Spinner, Alert } from "react-bootstrap";
+import { useUserSettings } from "../context/UserSettingsContext";
 
 export default function Reader() {
   const { id } = useParams();
   const [book, setBook] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  // Context'ten kullanıcı yazı ayarlarını çek
+  const { fontFamily, fontSize, lineHeight } = useUserSettings();
 
   useEffect(() => {
     fetch(`http://localhost:5000/api/books/${id}`)
@@ -43,14 +47,20 @@ export default function Reader() {
 
   return (
     <Container className="mt-4">
-      <h3 className="mb-3">📖 {book.title}</h3>
+      <h3 className="mb-3" style={{ fontFamily }}>📖 {book.title}</h3>
       {book.pdfUrl ? (
         <iframe
           src={`http://localhost:5000${book.pdfUrl}`}
           title="PDF Viewer"
           width="100%"
           height="650px"
-          style={{ border: "1px solid #ccc", borderRadius: "10px" }}
+          style={{
+            border: "1px solid #ccc",
+            borderRadius: "10px",
+            fontFamily,
+            fontSize,
+            lineHeight
+          }}
         />
       ) : (
         <Alert variant="warning">PDF bulunamadı</Alert>
