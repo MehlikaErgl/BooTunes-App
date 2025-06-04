@@ -42,11 +42,11 @@ const User = require("./models/User");
 const Book = mongoose.model("Book", new mongoose.Schema({ title: String, image: String, pdfUrl: String, userId: String }));
 
 app.post("/api/register", async (req, res) => {
-  const { email, password } = req.body;
+  const { email, password, username } = req.body;
   try {
     const existing = await User.findOne({ email });
     if (existing) return res.status(409).json({ message: "Kullanıcı zaten var" });
-    const newUser = new User({ email, password });
+    const newUser = new User({ email, password, username });
     await newUser.save();
     res.status(201).json(newUser);
   } catch (err) {
@@ -54,16 +54,44 @@ app.post("/api/register", async (req, res) => {
   }
 });
 
+
 app.post("/api/login", async (req, res) => {
   const { email, password } = req.body;
   try {
     const user = await User.findOne({ email, password });
     if (!user) return res.status(401).json({ message: "Geçersiz giriş" });
-    res.json({ userId: user._id, email: user.email });
+    res.json({ userId: user._id, email: user.email, username: user.username || "Reader" });
   } catch (err) {
     res.status(500).json({ message: "Giriş hatası", error: err });
   }
 });
+
+app.put("/api/users/:id", async (req, res) => {
+  const { username, email, password } = req.body;
+
+  try {
+    const update = {};
+    if (username) update.username = username;
+    if (email) update.email = email;
+    if (password) update.password = password; // Dilersen bcrypt ile hashle
+
+    const updatedUser = await User.findByIdAndUpdate(req.params.id, update, {
+      new: true,
+    });
+
+    if (!updatedUser) return res.status(404).json({ message: "Kullanıcı bulunamadı" });
+
+    res.json({
+      message: "Profil güncellendi",
+      username: updatedUser.username,
+      email: updatedUser.email,
+    });
+  } catch (err) {
+    console.error("❌ Kullanıcı güncelleme hatası:", err);
+    res.status(500).json({ message: "Güncelleme başarısız", error: err.message });
+  }
+});
+
 
 app.post("/api/books", upload.single("pdf"), async (req, res) => {
   const { title, image, userId } = req.body;

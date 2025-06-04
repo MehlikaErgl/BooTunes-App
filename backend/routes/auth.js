@@ -8,14 +8,14 @@ const JWT_SECRET = "bootunes_secret_key"; // İstersen .env ile saklayabiliriz
 
 // ✅ Kayıt
 router.post("/register", async (req, res) => {
-  const { email, password } = req.body;
+  const { email, password, username } = req.body;
 
   try {
     const userExist = await User.findOne({ email });
     if (userExist) return res.status(400).json({ message: "Email already exists" });
 
     const hashedPassword = await bcrypt.hash(password, 10);
-    const newUser = new User({ email, password: hashedPassword });
+    const newUser = new User({ email, password: hashedPassword, username });
 
     await newUser.save();
     res.status(201).json({ message: "User created successfully" });
@@ -25,9 +25,10 @@ router.post("/register", async (req, res) => {
   }
 });
 
+
 // ✅ Giriş
 router.post("/login", async (req, res) => {
-  const { email, password } = req.body;
+  const { email, password, username } = req.body;
 
   try {
     const user = await User.findOne({ email });

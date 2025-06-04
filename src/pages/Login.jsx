@@ -17,20 +17,6 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [theme, setTheme] = useState("light");
 
-  // Mobil yönlendirme
-  useEffect(() => {
-    const userAgent = navigator.userAgent || navigator.vendor || window.opera;
-
-    const isAndroid = /android/i.test(userAgent);
-    const isIOS = /iPad|iPhone|iPod/.test(userAgent) && !window.MSStream;
-
-    if (isAndroid) {
-      window.location.href = "https://play.google.com/store/apps/details?id=com.example.app"; // Android linkini buraya yaz
-    } else if (isIOS) {
-      window.location.href = "https://apps.apple.com/app/id000000000"; // iOS linkini buraya yaz
-    }
-  }, []);
-
   useEffect(() => {
     const storedTheme = localStorage.getItem("theme") || "light";
     setTheme(storedTheme);
@@ -40,60 +26,64 @@ export default function Login() {
   const isDark = theme === "dark";
 
   const handleLogin = async (e) => {
-  e.preventDefault();
-  const email = e.target.email.value;
-  const password = e.target.password.value;
+    e.preventDefault();
+    const email = e.target.email.value;
+    const password = e.target.password.value;
 
-  try {
-    const res = await fetch("http://localhost:5000/api/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
-    });
+    try {
+      const res = await fetch("http://localhost:5000/api/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
 
-    const data = await res.json();
+      const data = await res.json();
 
-    if (res.ok) {
-      localStorage.setItem("token", data.token);
-      localStorage.setItem("userId", data.userId);
-      alert("Giriş başarılı ✅");
-      navigate("/home");
-    } else {
-      alert(data.message || "Giriş başarısız");
+      if (res.ok) {
+        localStorage.setItem("userId", data.userId);
+        localStorage.setItem("email", data.email);
+        localStorage.setItem("username", data.username); // ✅ ÖNEMLİ: backend'den dönmeli!
+        alert("Giriş başarılı ✅");
+        navigate("/home");
+      } else {
+        alert(data.message || "Giriş başarısız");
+      }
+    } catch (err) {
+      console.error("Login error:", err);
+      alert("Sunucu hatası");
     }
-  } catch (err) {
-    console.error("Login error:", err);
-    alert("Sunucu hatası");
-  }
-};
-
+  };
 
   const handleSignUp = async (e) => {
-  e.preventDefault();
-  const email = e.target.signEmail.value;
-  const password = e.target.signPassword.value;
+    e.preventDefault();
+    const username = e.target.username.value;
+    const email = e.target.signEmail.value;
+    const password = e.target.signPassword.value;
 
-  try {
-    const res = await fetch("http://localhost:5000/api/register", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
-    });
+    try {
+      const res = await fetch("http://localhost:5000/api/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password, username }),
+      });
 
-    const data = await res.json();
+      const data = await res.json();
 
-    if (res.ok) {
-      alert("Kayıt başarılı ✅ Giriş yapabilirsiniz");
-      setShowSignUp(false);
-    } else {
-      alert(data.message || "Kayıt başarısız");
+      if (res.ok) {
+        alert("Kayıt başarılı ✅ Giriş yapabilirsiniz");
+        setShowSignUp(false);
+      } else {
+        alert(data.message || "Kayıt başarısız");
+      }
+    } catch (err) {
+      console.error("Register error:", err);
+      alert("Sunucu hatası");
     }
-  } catch (err) {
-    console.error("Register error:", err);
-    alert("Sunucu hatası");
-  }
-};
+  };
 
+  const inputStyle = isDark
+    ? { backgroundColor: "#6a6a6a", color: "#eee", border: "1px solid #444" }
+    : {};
 
   const cardStyle = {
     borderRadius: "1rem",
@@ -102,21 +92,11 @@ export default function Login() {
     boxShadow: "0 8px 24px rgba(0,0,0,0.15)",
     maxWidth: "440px",
     minHeight: "550px",
-    height: "auto",
     margin: "0 auto",
     display: "flex",
-    justifyContent: "center",
     alignItems: "center",
     color: isDark ? "#eee" : "#222",
   };
-
-  const inputStyle = isDark
-    ? {
-        backgroundColor: "#6a6a6a",
-        color: "#eee",
-        border: "1px solid #444",
-      }
-    : {};
 
   return (
     <div
@@ -136,7 +116,6 @@ export default function Login() {
           background: isDark ? "rgba(0,0,0,0.65)" : "rgba(0,0,0,0.5)",
         }}
       />
-
       <motion.div
         initial={{ opacity: 0, y: 50 }}
         animate={{ opacity: 1, y: 0 }}
@@ -150,15 +129,10 @@ export default function Login() {
             </Card.Title>
 
             {!showSignUp ? (
-              <motion.div
-                key="signin"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-              >
+              <motion.div key="signin">
                 <h5 className="mb-3">Sign In</h5>
                 <Form onSubmit={handleLogin}>
-                  <Form.Group className="mb-3" controlId="email">
+                  <Form.Group className="mb-3">
                     <Form.Control
                       type="email"
                       name="email"
@@ -167,8 +141,7 @@ export default function Login() {
                       style={inputStyle}
                     />
                   </Form.Group>
-
-                  <Form.Group className="mb-3" controlId="password">
+                  <Form.Group className="mb-3">
                     <InputGroup>
                       <FormControl
                         type={showPassword ? "text" : "password"}
@@ -185,20 +158,10 @@ export default function Login() {
                       </Button>
                     </InputGroup>
                   </Form.Group>
-
-                  <Form.Group className="mb-3" controlId="remember">
-                    <Form.Check
-                      type="checkbox"
-                      label="Remember Me"
-                      className={isDark ? "text-light" : ""}
-                    />
-                  </Form.Group>
-
                   <Button type="submit" className="w-100 mb-2" size="lg">
                     Login
                   </Button>
                 </Form>
-
                 <p className="mt-3">
                   Don’t have an account?{" "}
                   <Button
@@ -211,33 +174,31 @@ export default function Login() {
                 </p>
               </motion.div>
             ) : (
-              <motion.div
-                key="signup"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-              >
+              <motion.div key="signup">
                 <h5 className="mb-3">Create Account</h5>
                 <Form onSubmit={handleSignUp}>
-                  <Form.Group className="mb-3" controlId="fullName">
+                  <Form.Group className="mb-3">
                     <Form.Control
                       type="text"
-                      placeholder="Full Name"
+                      name="username"
+                      placeholder="Username"
                       required
                       style={inputStyle}
                     />
                   </Form.Group>
-                  <Form.Group className="mb-3" controlId="signEmail">
+                  <Form.Group className="mb-3">
                     <Form.Control
                       type="email"
+                      name="signEmail"
                       placeholder="Email address"
                       required
                       style={inputStyle}
                     />
                   </Form.Group>
-                  <Form.Group className="mb-3" controlId="signPassword">
+                  <Form.Group className="mb-3">
                     <Form.Control
                       type="password"
+                      name="signPassword"
                       placeholder="Password"
                       required
                       style={inputStyle}
@@ -252,7 +213,6 @@ export default function Login() {
                     Register
                   </Button>
                 </Form>
-
                 <p className="mt-3">
                   Already have an account?{" "}
                   <Button
