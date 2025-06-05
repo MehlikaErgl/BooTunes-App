@@ -9,11 +9,11 @@ import {
   InputGroup,
   Alert,
 } from "react-bootstrap";
-import jazzPhoto from "../assets/jazz.png";
-import chillPhoto from "../assets/chill.png";
-import classicPhoto from "../assets/classic.png";
-import popPhoto from "../assets/pop.png";
-import rockPhoto from "../assets/rock.png";
+import jazzPhoto from "../assets/jazz.jpg";
+import chillPhoto from "../assets/chill.jpg";
+import classicPhoto from "../assets/classic.jpg";
+import popPhoto from "../assets/pop.jpg";
+import rockPhoto from "../assets/rock.jpg";
 import { useUserSettings } from "../context/UserSettingsContext";
 
 const categories = [

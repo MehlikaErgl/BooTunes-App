@@ -7,12 +7,11 @@ import {
   Button,
   InputGroup,
   FormControl,
-  Badge,
-  Tabs,
-  Tab,
   Form,
   Spinner,
+  Modal
 } from "react-bootstrap";
+import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { useUserSettings } from "../context/UserSettingsContext";
 
@@ -27,7 +26,22 @@ export default function Library() {
   const [pdfFile, setPdfFile] = useState(null);
   const [isTitleConfirmed, setIsTitleConfirmed] = useState(false);
   const [loadingImage, setLoadingImage] = useState(false);
+  const [theme, setTheme] = useState(document.body.getAttribute("data-theme") || "light");
+  const [showUploadPanel, setShowUploadPanel] = useState(false);
+  const [modalMessage, setModalMessage] = useState("");
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [selectedBookId, setSelectedBookId] = useState(null);
+
   const navigate = useNavigate();
+  const isDark = theme === "dark";
+
+  useEffect(() => {
+    const observer = new MutationObserver(() => {
+      setTheme(document.body.getAttribute("data-theme") || "light");
+    });
+    observer.observe(document.body, { attributes: true });
+    return () => observer.disconnect();
+  }, []);
 
   const fetchMyBooks = () => {
     const userId = localStorage.getItem("userId");
@@ -53,7 +67,7 @@ export default function Library() {
 
   const handleConfirmTitle = async () => {
     if (!title.trim()) {
-      alert("Lütfen başlık girin.");
+      setModalMessage("Please enter a title.");
       return;
     }
     setLoadingImage(true);
@@ -63,10 +77,10 @@ export default function Library() {
       if (data.imageUrl) {
         setImageUrl(data.imageUrl);
         setIsTitleConfirmed(true);
-      } else throw new Error("Resim bulunamadı.");
+      } else throw new Error("Image not found.");
     } catch (err) {
-      console.error("❌ Resim alınamadı:", err);
-      alert("Resim alınamadı, lütfen manuel girin.");
+      console.error("❌Image cannot found:", err);
+      setModalMessage("Image cannot be found, please enter manually.");
     } finally {
       setLoadingImage(false);
     }
@@ -75,7 +89,7 @@ export default function Library() {
   const handleBookSubmit = (e) => {
     e.preventDefault();
     if (!title.trim() || !imageUrl.trim() || !pdfFile) {
-      alert("Başlık, resim ve PDF zorunludur.");
+      setModalMessage("Title, image and PDF are required.");
       return;
     }
 
@@ -96,152 +110,230 @@ export default function Library() {
         setImageUrl("");
         setPdfFile(null);
         setIsTitleConfirmed(false);
-        alert("Kitap başarıyla eklendi ✅");
+        setModalMessage("Book uploaded successfully ✅");
       })
       .catch((err) => {
-        console.error("❌ Kitap eklenemedi:", err);
-        alert("Kitap eklenemedi");
+        console.error("❌Book cannot be uploaded:", err);
+        setModalMessage("Book cannot be uploaded");
       });
   };
 
   const handleRemove = (id) => {
-    fetch(`http://localhost:5000/api/books/${id}`, {
+    setSelectedBookId(id);
+    setShowDeleteModal(true);
+  };
+
+  const confirmDelete = () => {
+    fetch(`http://localhost:5000/api/books/${selectedBookId}`, {
       method: "DELETE"
     })
       .then((res) => {
         if (res.ok) {
-          setMyBookList((prev) => prev.filter((book) => book._id !== id));
+          setMyBookList((prev) => prev.filter((book) => book._id !== selectedBookId));
         }
       })
-      .catch((err) => console.error("Silme hatası:", err));
+      .catch((err) => console.error("Deleting Error:", err))
+      .finally(() => {
+        setShowDeleteModal(false);
+        setSelectedBookId(null);
+      });
   };
 
   const filteredBooks = myBookList.filter((book) =>
     book.title?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const blurStyle = {
+    backdropFilter: "blur(6px)",
+    backgroundColor: isDark ? "rgba(255,255,255,0.02)" : "rgba(200,200,200,0.66)",
+    padding: "1rem",
+    borderRadius: "10px"
+  };
+
+  const cardBg = isDark ? "rgba(255,255,255,0.6)" : "#ccc";
+  const buttonColor = isDark ? "#000000" : "#000"; // Aydınlık modda lacivert yerine siyah
+  const searchBorderColor = isDark ? "#ccc" : "#000"; // Aydınlık modda lacivert yerine siyah
+  const textColor = isDark ? "#f1f1f1" : "#000"; // Aydınlık modda siyah
+  const contentBg = isDark ? "rgba(51, 46, 46, 0.4)" : undefined;
+  const cardBorderColor = isDark ? "#cccccc" : "#001f3f";
+
   return (
-    <div
+    <Container
+  fluid
+  className="py-4 px-4"
+  style={{
+    minHeight: "100vh",
+    backgroundColor: contentBg,
+    color: textColor,
+    fontFamily,
+    fontSize,
+    lineHeight,
+    overflowY: "auto"
+  }}
+>
+  <div className="text-center mb-3">
+    <Button
+      variant="outline-primary"
+      className="px-4 py-2"
+      onClick={() => setShowUploadPanel(!showUploadPanel)}
       style={{
-        height: "100vh",
-        display: "flex",
-        flexDirection: "column",
-        backgroundColor: "#121212",
-        color: "#f1f1f1",
-        fontFamily,
-        fontSize,
-        lineHeight
+        backgroundColor: isDark ? "#f0f0f0" : "#001f3f",
+        borderColor: isDark ? "#f0f0f0" : "#001f3f",
+        color: isDark ? "#111" : "#fff",
+        fontWeight: "bold"
       }}
     >
-      <Container fluid className="py-3" style={{ flexShrink: 0 }}>
-        <h2 className="mb-3">📚 Library</h2>
+      📤 Upload Book
+    </Button>
+  </div>
 
-        <Row className="justify-content-center mb-3">
-          <Col xs={12} md={6} lg={4}>
-            <InputGroup className="mb-2">
-              <FormControl
-                placeholder="Search books..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                style={{ backgroundColor: '#2a2a2a', color: '#f1f1f1', border: '1px solid #555' }}
-              />
-              <Button variant="primary">🔍</Button>
-            </InputGroup>
-
-            <Form onSubmit={handleBookSubmit}>
-              <Form.Label htmlFor="pdf-upload">Choose PDF:</Form.Label>
-              <Form.Control
-                id="pdf-upload"
-                type="file"
-                accept="application/pdf"
-                className="mb-2"
-                onChange={handlePdfChange}
-                required
-                style={{ backgroundColor: '#2a2a2a', color: '#f1f1f1', border: '1px solid #555' }}
-              />
-
-              <Form.Label htmlFor="book-title">Book Title:</Form.Label>
-              <InputGroup className="mb-2">
-                <FormControl
-                  id="book-title"
-                  name="title"
-                  value={title}
-                  placeholder="Type or confirm title"
-                  onChange={(e) => {
-                    setTitle(e.target.value);
-                    setIsTitleConfirmed(false);
-                    setImageUrl("");
-                  }}
-                  required
-                  style={{ backgroundColor: '#2a2a2a', color: '#f1f1f1', border: '1px solid #555' }}
-                />
-                <Button
-                  variant={isTitleConfirmed ? "success" : "outline-secondary"}
-                  disabled={!title.trim() || loadingImage}
-                  onClick={handleConfirmTitle}
-                >
-                  {loadingImage ? <Spinner animation="border" size="sm" /> : isTitleConfirmed ? "✓ Confirmed" : "Confirm Title"}
-                </Button>
-              </InputGroup>
-
-              <Form.Label htmlFor="image-url">Image URL:</Form.Label>
-              <FormControl
-                id="image-url"
-                name="image"
-                value={imageUrl}
-                placeholder="Auto-filled or paste manually"
-                onChange={(e) => setImageUrl(e.target.value)}
-                className="mb-2"
-                required
-                style={{ backgroundColor: '#2a2a2a', color: '#f1f1f1', border: '1px solid #555' }}
-              />
-
-              <Button type="submit" variant="success" className="w-100">➕ Add Book</Button>
-            </Form>
-          </Col>
-        </Row>
-      </Container>
-
-      <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
-        <Tabs defaultActiveKey="mybooks" className="mb-3">
-          <Tab eventKey="mybooks" title={<span>My Books <Badge bg="success">{myBookList.length}</Badge></span>} />
-        </Tabs>
-
-        <div style={{ flex: 1, overflowX: "auto", overflowY: "hidden", whiteSpace: "nowrap", padding: "0 1rem" }}>
-          {filteredBooks.map((book) => (
-            <div key={book._id} style={{ display: "inline-block", verticalAlign: "top", width: "180px", marginRight: "1rem", marginBottom: "1rem" }}>
-              <Card className="h-100 d-flex flex-column shadow-sm" style={{ backgroundColor: "#1c1c1c", color: "#f1f1f1" }}>
-                <Card.Img variant="top" src={book.image} style={{ height: "140px", objectFit: "cover" }} />
-                <Card.Body className="d-flex flex-column p-2">
-                  <Card.Title className="text-center" style={{ fontSize: "0.9rem", whiteSpace: "normal" }}>{book.title}</Card.Title>
-                  <div className="mt-auto d-grid gap-1">
-                    <Button variant="outline-primary" size="sm" onClick={() => navigate(`/readingbook/${book._id}`)}>📖 Read</Button>
-                    <Button variant="outline-danger" size="sm" onClick={() => handleRemove(book._id)}>❌ Remove</Button>
-                  </div>
-                </Card.Body>
-              </Card>
+  <div style={{ width: "100%", paddingBottom: "50px" }}>
+    <AnimatePresence>
+      {showUploadPanel && (
+        <motion.div
+          key="uploadPanel"
+          initial={{ opacity: 0, height: 0, scaleY: 0.9 }}
+          animate={{ opacity: 1, height: "auto", scaleY: 1 }}
+          exit={{ opacity: 0, height: 0, scaleY: 0.9 }}
+          transition={{ duration: 0.4, ease: "easeInOut" }}
+          className="mb-4"
+          style={{ overflow: "hidden" }}
+        >
+          <Form onSubmit={handleBookSubmit} style={blurStyle}>
+            <Row>
+              <Col md={6}>
+                <Form.Label>Choose PDF:</Form.Label>
+                <Form.Control type="file" accept="application/pdf" onChange={handlePdfChange} required />
+              </Col>
+              <Col md={6}>
+                <Form.Label>Book Title:</Form.Label>
+                <InputGroup>
+                  <FormControl
+                    value={title}
+                    onChange={(e) => {
+                      setTitle(e.target.value);
+                      setIsTitleConfirmed(false);
+                      setImageUrl("");
+                    }}
+                    required
+                  />
+                  <Button onClick={handleConfirmTitle} disabled={!title.trim() || loadingImage}>
+                    {loadingImage ? <Spinner animation="border" size="sm" /> : isTitleConfirmed ? "✓" : "Confirm"}
+                  </Button>
+                </InputGroup>
+              </Col>
+            </Row>
+            <Form.Label className="mt-3">Image URL:</Form.Label>
+            <FormControl
+              value={imageUrl}
+              onChange={(e) => setImageUrl(e.target.value)}
+              required
+            />
+            <div style={{ fontSize: "0.85rem", marginTop: "5px", marginBottom: "5px", color: isDark ? "#fff" : "#001f3f" }}>
+              *You can manually add the book cover image URL or click Confirm to auto-generate one.
             </div>
-          ))}
-        </div>
-      </div>
+            <div className="d-flex justify-content-center">
+              <Button
+                type="submit"
+                className="mt-2"
+                style={{
+                  width: "160px",
+                  backgroundColor: "#e6f2ff",
+                  borderColor: "#b3d9ff",
+                  borderWidth: "2px",
+                  color: "#001f3f",
+                  fontWeight: "bold"
+                }}
+              >
+                ➕ Add Book
+              </Button>
+            </div>
+          </Form>
+        </motion.div>
+      )}
+    </AnimatePresence>
 
-      <style>{`
-        input[type="file"]::file-selector-button {
-          background-color: #444;
-          color: white;
-          border: none;
-          padding: 6px 12px;
-          border-radius: 5px;
-        }
-        .nav-tabs .nav-link.active {
-          background-color: #444 !important;
-          color: white !important;
-          border-color: #444 !important;
-        }
-        .nav-tabs .nav-link {
-          color: #aaa;
-        }
-      `}</style>
+    <Row className="justify-content-center mb-3">
+      <Col xs={12} md={6} lg={4}>
+        <InputGroup>
+          <FormControl
+            placeholder="Search books..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            style={{
+              backgroundColor: isDark ? "#fff" : "#eaeaea",
+              color: "#001f3f",
+              border: `2px solid ${searchBorderColor}`
+            }}
+          />
+          <Button
+            style={{
+              backgroundColor: isDark ? "#555" : buttonColor,
+              borderColor: isDark ? "#555" : buttonColor
+            }}
+          >
+            🔍
+          </Button>
+        </InputGroup>
+      </Col>
+    </Row>
+
+    <Row className="gx-4 gy-4">
+      {filteredBooks.map((book) => (
+        <Col xs={12} sm={6} md={4} lg={3} key={book._id}>
+          <Card style={{ backgroundColor: cardBg, color: textColor, height: "100%", maxHeight: "400px", border: `2px solid ${cardBorderColor}`, borderRadius: "7px" }}>
+            <Card.Img
+              variant="top"
+              src={book.image}
+              style={{ height: "200px", objectFit: "cover" }}
+            />
+            <Card.Body className="d-flex flex-column align-items-center">
+              <Card.Title className="text-center">{book.title}</Card.Title>
+              <Button
+                variant="outline-primary"
+                className="mb-2"
+                onClick={() => navigate(`/readingbook/${book._id}`)}
+                style={{ fontWeight: "bold", width: "150px", borderWidth: "2px", marginTop: 10 }}
+              >
+                📖 Read
+              </Button>
+              <Button
+                variant="outline-danger"
+                onClick={() => handleRemove(book._id)}
+                style={{ fontWeight: "bold", width: "150px", borderWidth: "2px" }}
+              >
+                Remove
+              </Button>
+            </Card.Body>
+          </Card>
+        </Col>
+      ))}
+    </Row>
+  </div>
+
+  <Modal show={showDeleteModal} onHide={() => setShowDeleteModal(false)} centered>
+    <div
+      style={{
+        backgroundColor: isDark ? "rgba(0, 31, 63, 0.9)" : "#fff",
+        borderRadius: "7px",
+        padding: "1rem",
+        color: isDark ? "#fff" : "#000"
+      }}
+    >
+      <Modal.Header closeButton style={{ border: "none", backgroundColor: "transparent" }}>
+        <Modal.Title className="text-center w-100">Confirm Deletion</Modal.Title>
+      </Modal.Header>
+      <Modal.Body className="text-center">
+        Are you sure you want to delete this book?
+      </Modal.Body>
+      <Modal.Footer className="justify-content-center" style={{ backgroundColor: "transparent", borderTop: "none" }}>
+        <Button variant="danger" onClick={confirmDelete}>Yes, Remove</Button>
+        <Button variant="secondary" onClick={() => setShowDeleteModal(false)} className="ms-3">Cancel</Button>
+      </Modal.Footer>
     </div>
+  </Modal>
+
+</Container>
+
   );
 }

@@ -1,3 +1,5 @@
+// GÜNCELLENMİŞ "Home" BİLEŞENİ
+
 import React, { useState, useEffect } from "react";
 import {
   Container,
@@ -26,7 +28,6 @@ export default function Home() {
   const { settings } = useUserSettings();
   const { fontSize, fontFamily, lineHeight } = settings;
 
-
   const fetchBooks = () => {
     const userId = localStorage.getItem("userId");
     fetch(`http://localhost:5000/api/books?userId=${userId}`)
@@ -51,6 +52,10 @@ export default function Home() {
   const filteredBooks = allBooks.filter((book) =>
     book.title?.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const primaryColor = isDark ? "#1a1a1a" : "#111111"; // koyu tonlar
+  const buttonColor = isDark ? "#999999" : "#111111";
+  const readerTitle = isDark ? "#e0e0e0" : "#111111";
 
   const contentBg = isDark ? "rgba(51, 46, 46, 0.4)" : undefined;
   const cardBg = isDark ? "rgba(255,255,255,0.08)" : "#ffffff";
@@ -77,19 +82,23 @@ export default function Home() {
         lineHeight
       }}
     >
-      <div className="py-0 px-4">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
+      <div className="py-0 px-4 text-center">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+        >
           <div className="d-inline-block p-2 my-3 rounded" style={blurStyle}>
             <h3 className="mb-0" style={{ color: textColor }}>
-              Welcome back, <span className="text-primary">{username}</span> 👋
+              Welcome back, <span style={{ color: readerTitle }}>{username}</span> 👋
             </h3>
           </div>
         </motion.div>
       </div>
 
-      <div className="px-4 mb-2">
-        <Row className="align-items-center">
-          <Col xs={12} md={8} lg={6} className="mb-3 mb-md-0">
+      <div className="px-4 mb-3 text-center">
+        <Row className="justify-content-center">
+          <Col xs={12} md={8} lg={6}>
             <InputGroup>
               <FormControl
                 placeholder="Search your library..."
@@ -99,22 +108,23 @@ export default function Home() {
                 style={
                   isDark
                     ? {
-                        backgroundColor: "#6a6a6a",
-                        color: "#ffffff",
-                        border: "1px solid #555"
+                        backgroundColor: "#ffffff",
+                        color: "#001f3f",
+                        border: "1px solid #ccc"
                       }
-                    : {}
+                    : {
+                        backgroundColor: "#eaeaea",
+                        color: "#001f3f",
+                        border: "1px solid #001f3f"
+                      }
                 }
               />
-              <Button variant={isDark ? "light" : "primary"}>🔍</Button>
+              <Button style={{ backgroundColor: buttonColor, borderColor: buttonColor }}>
+                🔍
+              </Button>
             </InputGroup>
           </Col>
         </Row>
-      </div>
-
-      <div className="px-4 mb-3 p-2">
-        <Button variant="outline-primary" className="me-2 mb-2" onClick={() => navigate("/library")}>📚 Library</Button>
-        <Button variant="outline-success" className="mb-2" onClick={() => navigate("/playlist")}>🎵 Playlist</Button>
       </div>
 
       <div className="custom-scroll" style={{ overflowY: "auto", flexGrow: 1, padding: "2rem" }}>
@@ -125,12 +135,24 @@ export default function Home() {
               {filteredBooks.length > 0 ? (
                 filteredBooks.map((book, idx) => (
                   <Col xs={12} sm={6} md={4} lg={3} key={idx}>
-                    <Card className="h-100 shadow-sm border-0" style={{ backgroundColor: cardBg, color: textColor }}>
+                    <Card
+                      className="shadow-sm border-0"
+                      style={{
+                        backgroundColor: cardBg,
+                        color: textColor,
+                        width: "100%",
+                        maxHeight: "400px",
+                        display: "flex",
+                        flexDirection: "column",
+                        justifyContent: "space-between",
+                        overflow: "hidden"
+                      }}
+                    >
                       <Card.Img variant="top" src={book.image} alt={book.title} style={{ height: "220px", objectFit: "cover" }} />
-                      <Card.Body className="d-flex flex-column">
+                      <Card.Body className="d-flex flex-column justify-content-between">
                         <Card.Title>{book.title}</Card.Title>
-                        {book.author && <Card.Subtitle className="text-muted mb-2">{book.author}</Card.Subtitle>}
-                        <Button variant="primary" className="mt-auto" onClick={() => navigate(`/readingbook/${book._id}`)}>Read</Button>
+                        {book.author && <Card.Subtitle className="mb-2" style={{ color: isDark ? "#999" : "#555" }}>{book.author}</Card.Subtitle>}
+                        <Button style={{ backgroundColor: primaryColor, borderColor: primaryColor }} className="mt-auto" onClick={() => navigate(`/readingbook/${book._id}`)}>Read</Button>
                       </Card.Body>
                     </Card>
                   </Col>
@@ -154,11 +176,22 @@ export default function Home() {
                     <Card className="h-100 shadow-sm border-0" style={{ backgroundColor: cardBg, color: textColor }}>
                       <div style={{ position: "relative" }}>
                         <Card.Img src={book.image} alt={book.title} style={{ height: "180px", objectFit: "cover" }} />
-                        <Badge bg="primary" pill style={{ position: "absolute", top: 10, right: 10 }}>📖</Badge>
+                        <Badge pill style={{ position: "absolute", top: 10, right: 10, backgroundColor: primaryColor, color: "#fff" }}>📖</Badge>
                       </div>
                       <Card.Body className="d-flex flex-column">
                         <Card.Title className="mb-3">{book.title}</Card.Title>
-                        <Button variant="primary" className="mt-auto" onClick={() => navigate(`/readingbook/${book._id}`)}>Continue</Button>
+                        <Button
+                          onClick={() => navigate(`/readingbook/${book._id}`)}
+                          style={{
+                            backgroundColor: theme === "dark" ? "#f0f0f0" : "#444",
+                            color: theme === "dark" ? "#111" : "#fff",
+                            border: "none"
+                          }}
+                        >
+                          Continue
+                        </Button>
+
+
                       </Card.Body>
                     </Card>
                   </motion.div>

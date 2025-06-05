@@ -5,17 +5,19 @@ import {
   Form,
   InputGroup,
   FormControl,
+  Alert,
 } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { FiEye, FiEyeOff } from "react-icons/fi";
-import bgImage from "../assets/background.png";
+import bgImage from "../assets/background.jpg";
 
 export default function Login() {
   const navigate = useNavigate();
   const [showSignUp, setShowSignUp] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [theme, setTheme] = useState("light");
+  const [message, setMessage] = useState({ text: "", variant: "" });
 
   useEffect(() => {
     const storedTheme = localStorage.getItem("theme") || "light";
@@ -42,15 +44,14 @@ export default function Login() {
       if (res.ok) {
         localStorage.setItem("userId", data.userId);
         localStorage.setItem("email", data.email);
-        localStorage.setItem("username", data.username); // ✅ ÖNEMLİ: backend'den dönmeli!
-        alert("Giriş başarılı ✅");
+        localStorage.setItem("username", data.username);
         navigate("/home");
       } else {
-        alert(data.message || "Giriş başarısız");
+        setMessage({ text: data.message || "Login failed", variant: "danger" });
       }
     } catch (err) {
       console.error("Login error:", err);
-      alert("Sunucu hatası");
+      setMessage({ text: "Server error", variant: "danger" });
     }
   };
 
@@ -70,37 +71,61 @@ export default function Login() {
       const data = await res.json();
 
       if (res.ok) {
-        alert("Kayıt başarılı ✅ Giriş yapabilirsiniz");
-        setShowSignUp(false);
+        setMessage({ text: "Registration successful. Redirecting to login...", variant: "success" });
+        setTimeout(() => {
+          setMessage({ text: "", variant: "" });
+          setShowSignUp(false);
+        }, 2000);
       } else {
-        alert(data.message || "Kayıt başarısız");
+        setMessage({ text: data.message || "Registration failed", variant: "danger" });
       }
     } catch (err) {
       console.error("Register error:", err);
-      alert("Sunucu hatası");
+      setMessage({ text: "Server error", variant: "danger" });
     }
   };
 
   const inputStyle = isDark
-    ? { backgroundColor: "#6a6a6a", color: "#eee", border: "1px solid #444" }
+    ? {
+        backgroundColor: "#d9d9d9", // açık gri
+        color: "#001f3f", // lacivert yazı
+        border: "1px solid #444",
+      }
     : {};
 
-  const cardStyle = {
-    borderRadius: "1rem",
-    backdropFilter: "blur(10px)",
-    backgroundColor: isDark ? "rgba(30,30,30,0.85)" : "rgba(255,255,255,0.85)",
-    boxShadow: "0 8px 24px rgba(0,0,0,0.15)",
-    maxWidth: "440px",
-    minHeight: "550px",
-    margin: "0 auto",
-    display: "flex",
-    alignItems: "center",
-    color: isDark ? "#eee" : "#222",
-  };
+    const cardStyle = {
+      borderRadius: "1rem",
+      backdropFilter: "blur(16px)",
+      backgroundColor: isDark ? "rgba(0, 31, 63, 0.6)" : "rgba(255,255,255,0.85)", // lacivert şeffaf
+      boxShadow: "0 8px 24px rgba(0,0,0,0.25)",
+      border: isDark ? "1px solid rgba(255,255,255,0.2)" : "2px solid #001f3f",
+      color: isDark ? "#f0f0f0" : "#222",
+      padding: "2rem",
+      maxWidth: "440px",
+      width: "100%",
+      minHeight: "570px",
+      display: "flex",
+      justifyContent: "center",
+      alignItems: "center",
+    };
+    
+
+  const loginButtonStyle = isDark
+    ? {
+        backgroundColor: "#d9d9d9",
+        borderColor: "#d9d9d9",
+        color: "#001f3f",
+        fontWeight: "bold",
+      }
+    : {
+        backgroundColor: "#001f3f",
+        borderColor: "#001f3f",
+        color: "#fff",
+        fontWeight: "bold",
+      };
 
   return (
     <div
-      className="d-flex align-items-center justify-content-center px-3"
       style={{
         backgroundImage: `url(${bgImage})`,
         backgroundSize: "cover",
@@ -113,23 +138,46 @@ export default function Login() {
         style={{
           position: "absolute",
           inset: 0,
-          background: isDark ? "rgba(0,0,0,0.65)" : "rgba(0,0,0,0.5)",
+          background: isDark ? "rgba(0, 15, 40, 0.75)" : "rgba(0, 0, 0, 0.5)",
+          backdropFilter: "blur(3px)", // burada blur ekledik
         }}
       />
       <motion.div
         initial={{ opacity: 0, y: 50 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
-        style={{ zIndex: 1, width: "100%" }}
+        style={{
+          zIndex: 1,
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          minHeight: "100vh",
+          padding: "1rem",
+        }}
       >
-        <Card className="p-4 text-center w-100 border-0" style={cardStyle}>
+        <Card className="text-center w-100 border-0" style={cardStyle}>
           <div className="w-100" style={{ maxWidth: 360 }}>
-            <Card.Title className="mb-4 display-6 text-primary">
-              BooTunes 🎵📖
-            </Card.Title>
+          <Card.Title
+  className="mb-4"
+  style={{
+    fontSize: "2.2rem",
+    fontWeight: "bold",
+    color: isDark ? "#ffffff" : "#001f3f",
+    textShadow: isDark ? "0 0 8px rgba(255,255,255,0.3)" : "1px 1px 2px rgba(0,0,0,0.2)",
+  }}
+>
+  BooTunes 🎵📖
+</Card.Title>
+
+
+            {message.text && (
+              <Alert variant={message.variant} className="py-2">
+                {message.text}
+              </Alert>
+            )}
 
             {!showSignUp ? (
-              <motion.div key="signin">
+              <motion.div key="signin" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
                 <h5 className="mb-3">Sign In</h5>
                 <Form onSubmit={handleLogin}>
                   <Form.Group className="mb-3">
@@ -148,6 +196,7 @@ export default function Login() {
                         name="password"
                         placeholder="Password"
                         required
+                        autoComplete="off"
                         style={inputStyle}
                       />
                       <Button
@@ -158,7 +207,7 @@ export default function Login() {
                       </Button>
                     </InputGroup>
                   </Form.Group>
-                  <Button type="submit" className="w-100 mb-2" size="lg">
+                  <Button type="submit" className="w-100 mb-2" size="lg" style={loginButtonStyle}>
                     Login
                   </Button>
                 </Form>
@@ -166,15 +215,19 @@ export default function Login() {
                   Don’t have an account?{" "}
                   <Button
                     variant="link"
-                    className="p-0 text-success"
-                    onClick={() => setShowSignUp(true)}
+                    className="p-0"
+                    style={isDark ? { color: "#66b3ff" } : {}}
+                    onClick={() => {
+                      setMessage({ text: "", variant: "" });
+                      setShowSignUp(true);
+                    }}
                   >
                     Sign Up
                   </Button>
                 </p>
               </motion.div>
             ) : (
-              <motion.div key="signup">
+              <motion.div key="signup" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
                 <h5 className="mb-3">Create Account</h5>
                 <Form onSubmit={handleSignUp}>
                   <Form.Group className="mb-3">
@@ -201,15 +254,11 @@ export default function Login() {
                       name="signPassword"
                       placeholder="Password"
                       required
+                      autoComplete="new-password"
                       style={inputStyle}
                     />
                   </Form.Group>
-                  <Button
-                    type="submit"
-                    className="w-100 mb-2"
-                    size="lg"
-                    variant="success"
-                  >
+                  <Button type="submit" className="w-100 mb-2" size="lg" style={loginButtonStyle}>
                     Register
                   </Button>
                 </Form>
@@ -218,7 +267,10 @@ export default function Login() {
                   <Button
                     variant="link"
                     className="p-0 text-primary"
-                    onClick={() => setShowSignUp(false)}
+                    onClick={() => {
+                      setMessage({ text: "", variant: "" });
+                      setShowSignUp(false);
+                    }}
                   >
                     Sign In
                   </Button>
