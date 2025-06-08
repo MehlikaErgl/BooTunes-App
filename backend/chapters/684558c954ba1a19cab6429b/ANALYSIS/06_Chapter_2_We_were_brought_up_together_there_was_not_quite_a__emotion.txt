@@ -1,0 +1,14 @@
+Emotion distribution for '06_Chapter_2_We_were_brought_up_together_there_was_not_quite_a_.txt'
+
+Excitement  :  32.4%
+Romance     :  11.3%
+Anger       :   9.1%
+Joy         :   8.7%
+Sadness     :   8.5%
+Neutral     :   7.1%
+Melancholy  :   5.5%
+Fear        :   4.7%
+Disgust     :   4.0%
+Loneliness  :   3.5%
+Tension     :   2.8%
+Surprise    :   2.4%

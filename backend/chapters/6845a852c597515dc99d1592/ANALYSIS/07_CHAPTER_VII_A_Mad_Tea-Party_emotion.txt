@@ -1,0 +1,14 @@
+Emotion distribution for '07_CHAPTER_VII_A_Mad_Tea-Party.txt'
+
+Excitement  :  22.7%
+Melancholy  :  17.2%
+Anger       :  14.8%
+Neutral     :   9.1%
+Sadness     :   7.3%
+Tension     :   6.7%
+Fear        :   5.1%
+Surprise    :   4.9%
+Loneliness  :   4.8%
+Disgust     :   4.2%
+Romance     :   2.5%
+Joy         :   0.9%

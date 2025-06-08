@@ -1,46 +1,86 @@
-require('dotenv').config(); 
-const express = require("express");
-const mongoose = require("mongoose");
-const cors = require("cors");
-const multer = require("multer");
-const path = require("path");
-const fs = require("fs");
-const { exec } = require("child_process");
+// File: backend/server.js
+
+require("dotenv").config();
+const express   = require("express");
+const mongoose  = require("mongoose");
+const cors      = require("cors");
+const multer    = require("multer");
+const path      = require("path");
+const fs        = require("fs");
+const { spawn } = require("child_process");
 const puppeteer = require("puppeteer-extra");
 const StealthPlugin = require("puppeteer-extra-plugin-stealth");
-const LastRead = require("./models/LastRead");
-const settingsRoutes = require("./routes/settings");
 puppeteer.use(StealthPlugin());
-
+const csv      = require("csvtojson");
+let   songInfo = [];
 const app = express();
 
-const uploadsPath = path.join(__dirname, "uploads");
-if (!fs.existsSync(uploadsPath)) fs.mkdirSync(uploadsPath, { recursive: true });
+// ─── MODELLER ─────────────────────────────────────────────────────────────────────
+const LastRead = require("./models/LastRead");
+const User     = require("./models/User");
 
+// Basit Book modeli (title, image, pdfUrl, userId)
+const Book = mongoose.model(
+  "Book",
+  new mongoose.Schema({
+    title:  String,
+    image:  String,
+    pdfUrl: String,
+    userId: String
+  })
+);
+
+// ─── ROUTE’LER ────────────────────────────────────────────────────────────────────
+const settingsRoutes = require("./routes/settings");
+const analysisRoutes = require("./routes/analysis"); // “Emotion Analysis” rotaları
+
+// ─── DİZİN AYARLARI ───────────────────────────────────────────────────────────────
+const uploadsPath  = path.join(__dirname, "uploads");
 const chaptersPath = path.join(__dirname, "chapters");
+
+// Eğer “uploads” veya “chapters” klasörleri yoksa, oluştur:
+if (!fs.existsSync(uploadsPath))  fs.mkdirSync(uploadsPath,  { recursive: true });
 if (!fs.existsSync(chaptersPath)) fs.mkdirSync(chaptersPath, { recursive: true });
+
+// Load songs_info_all.csv once at startup
+csv()
+  .fromFile(path.join(__dirname, "music", "Annotations", "songs_info_all.csv"))
+  .then(rows => {
+    songInfo = rows;  
+    console.log(`Loaded ${rows.length} song metadata entries`);
+  })
+  .catch(err => {
+    console.error("Failed to load songs_info_all.csv:", err);
+  });
 
 app.use(cors());
 app.use(express.json());
+
 app.use("/uploads", express.static(uploadsPath));
 app.use("/chapters", express.static(chaptersPath));
+
+// Ayarlar (user settings) rotası:
 app.use("/api/settings", settingsRoutes);
-app.use("/api/settings", require("./routes/settings"));
 
+// Emotion Analysis rotası (önceki kodda eklediğiniz analysis.js):
+app.use("/api/analysis", analysisRoutes);
 
-mongoose.connect(process.env.MONGODB_URI, { family: 4 })
+// ─── MONGODB BAĞLANTISI ───────────────────────────────────────────────────────────
+mongoose
+  .connect(process.env.MONGODB_URI, { family: 4 })
   .then(() => console.log("✅ MongoDB bağlantısı başarılı"))
   .catch(err => console.error("❌ MongoDB bağlantı hatası:", err.message));
 
+// ─── MULTER (PDF UPLOAD) AYARLARI ─────────────────────────────────────────────────
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, uploadsPath),
-  filename: (req, file, cb) => cb(null, Date.now() + path.extname(file.originalname)),
+  filename:    (req, file, cb) => cb(null, Date.now() + path.extname(file.originalname)),
 });
 const upload = multer({ storage });
 
-const User = require("./models/User");
-const Book = mongoose.model("Book", new mongoose.Schema({ title: String, image: String, pdfUrl: String, userId: String }));
+// ─── KAYIT / GİRİŞ / PROFİL GÜNCELLEME ───────────────────────────────────────────────
 
+// POST /api/register  → Yeni kullanıcı oluştur
 app.post("/api/register", async (req, res) => {
   const { email, password, username } = req.body;
   try {
@@ -48,135 +88,205 @@ app.post("/api/register", async (req, res) => {
     if (existing) return res.status(409).json({ message: "Kullanıcı zaten var" });
     const newUser = new User({ email, password, username });
     await newUser.save();
-    res.status(201).json(newUser);
+    return res.status(201).json(newUser);
   } catch (err) {
-    res.status(500).json({ message: "Kayıt hatası", error: err });
+    return res.status(500).json({ message: "Kayıt hatası", error: err });
   }
 });
 
-
+// POST /api/login  → Kullanıcı girişi (email + password)
 app.post("/api/login", async (req, res) => {
   const { email, password } = req.body;
   try {
     const user = await User.findOne({ email, password });
     if (!user) return res.status(401).json({ message: "Geçersiz giriş" });
-    res.json({ userId: user._id, email: user.email, username: user.username || "Reader" });
+    return res.json({ userId: user._id, email: user.email, username: user.username || "Reader" });
   } catch (err) {
-    res.status(500).json({ message: "Giriş hatası", error: err });
+    return res.status(500).json({ message: "Giriş hatası", error: err });
   }
 });
 
+// PUT /api/users/:id  → Kullanıcı profil güncelleme (username, email, password)
 app.put("/api/users/:id", async (req, res) => {
   const { username, email, password } = req.body;
-
   try {
     const update = {};
     if (username) update.username = username;
-    if (email) update.email = email;
-    if (password) update.password = password; // Dilersen bcrypt ile hashle
-
-    const updatedUser = await User.findByIdAndUpdate(req.params.id, update, {
-      new: true,
-    });
-
+    if (email)    update.email    = email;
+    if (password) update.password = password;
+    const updatedUser = await User.findByIdAndUpdate(req.params.id, update, { new: true });
     if (!updatedUser) return res.status(404).json({ message: "Kullanıcı bulunamadı" });
-
-    res.json({
-      message: "Profil güncellendi",
+    return res.json({
+      message:  "Profil güncellendi",
       username: updatedUser.username,
-      email: updatedUser.email,
+      email:    updatedUser.email,
     });
   } catch (err) {
     console.error("❌ Kullanıcı güncelleme hatası:", err);
-    res.status(500).json({ message: "Güncelleme başarısız", error: err.message });
+    return res.status(500).json({ message: "Güncelleme başarısız", error: err.message });
   }
 });
 
+// ─── KİTAP YÜKLEME / SPLIT-EMOTION AKIŞI ────────────────────────────────────────────
 
+// POST /api/books  (FormData: { title, image, userId, pdf })
 app.post("/api/books", upload.single("pdf"), async (req, res) => {
   const { title, image, userId } = req.body;
   const pdfUrl = req.file ? `/uploads/${req.file.filename}` : null;
 
   try {
+    // 1) Veritabanına yeni Book kaydet:
     const book = new Book({ title, image, userId, pdfUrl });
     await book.save();
 
-    const fullPdfPath = path.join(__dirname, pdfUrl);
+    // 2) PDF’in fiziksel path’i ve “chapters/<bookId>” klasörü:
+    const fullPdfPath     = path.join(__dirname, pdfUrl);
     const bookChaptersDir = path.join(chaptersPath, book._id.toString());
-    if (!fs.existsSync(bookChaptersDir)) fs.mkdirSync(bookChaptersDir, { recursive: true });
+    if (!fs.existsSync(bookChaptersDir)) {
+      fs.mkdirSync(bookChaptersDir, { recursive: true });
+    }
 
     console.log("📄 Split edilecek dosya:", fullPdfPath);
     console.log("📁 Hedef klasör:", bookChaptersDir);
 
-    const command = `python split_pdf_chapters.py "${fullPdfPath}" "${bookChaptersDir}"`;
+    // 3) split_pdf_chapters.py’yi spawn ile çalıştır, env altında PYTHONIOENCODING=utf-8 ekliyoruz
+    const splitter = spawn(
+      "python",
+      ["split_pdf_chapters.py", fullPdfPath, bookChaptersDir],
+      {
+        cwd: __dirname,
+        env: {
+          ...process.env,
+          PYTHONIOENCODING: "utf-8"
+        }
+      }
+    );
 
-    exec(command, { cwd: __dirname }, (err, stdout, stderr) => {
-      console.log("📤 SPLIT stdout:", stdout);
-      console.error("⚠️ SPLIT stderr:", stderr);
-      if (err) {
+    let splitStdout = "";
+    let splitStderr = "";
+
+    splitter.stdout.on("data", (data) => {
+      splitStdout += data.toString();
+    });
+    splitter.stderr.on("data", (data) => {
+      splitStderr += data.toString();
+    });
+
+    splitter.on("close", (code) => {
+      console.log("📤 SPLIT stdout:", splitStdout);
+      console.error("⚠️ SPLIT stderr:", splitStderr);
+
+      // Eğer split sırasında bir hata oluşmuşsa, yine de kitap kaydedildi:
+      if (code !== 0) {
         return res.status(201).json({
           message: "Kitap eklendi ama split sırasında hata oluştu",
-          error: stderr,
-          book,
+          error: splitStderr,
+          book
         });
       }
-      res.status(201).json({ message: "Kitap başarıyla eklendi ve split edildi", book });
+
+      // 4) Bölümlendirme tamamlanınca, hemen “emotion_analysis.py <bookId>” çalıştır:
+      const emotionProcess = spawn(
+        "python",
+        ["emotion_analysis.py", book._id.toString()],
+        {
+          cwd: __dirname,
+          env: {
+            ...process.env,
+            PYTHONIOENCODING: "utf-8"
+          }
+        }
+      );
+
+      let emoStdout = "";
+      let emoStderr = "";
+
+      emotionProcess.stdout.on("data", (data) => {
+        emoStdout += data.toString();
+      });
+      emotionProcess.stderr.on("data", (data) => {
+        emoStderr += data.toString();
+      });
+
+      emotionProcess.on("close", (ec) => {
+        console.log("😃 EMOTION stdout:", emoStdout);
+        console.error("⚠️ EMOTION stderr:", emoStderr);
+        if (ec !== 0) {
+          console.error("[!] Emotion analiz hatası:", emoStderr);
+        }
+      });
+
+      // 5) İstemciye (React tarafına) “201 Created” döneriz:
+      return res.status(201).json({
+        message: "Kitap başarıyla eklendi; split ve emotion analiz arka planda başlatıldı",
+        book
+      });
     });
+
   } catch (err) {
     console.error("❌ Kitap eklenemedi:", err);
-    res.status(500).json({ message: "Kitap eklenemedi", error: err.message });
+    return res.status(500).json({ message: "Kitap eklenemedi", error: err.message });
   }
 });
 
+// GET /api/books?userId=… → Kullanıcının kitap listesini döner
 app.get("/api/books", async (req, res) => {
   const { userId } = req.query;
   if (!userId) return res.status(400).json({ message: "userId gerekli" });
   try {
     const books = await Book.find({ userId });
-    res.json(books);
+    return res.json(books);
   } catch (err) {
-    res.status(500).json({ message: "Kitaplar getirilemedi", error: err });
+    return res.status(500).json({ message: "Kitaplar getirilemedi", error: err });
   }
 });
 
+// GET /api/books/:id → Tek bir kitabı getir
 app.get("/api/books/:id", async (req, res) => {
   try {
     const book = await Book.findById(req.params.id);
     if (!book) return res.status(404).json({ message: "Kitap bulunamadı" });
-    res.json(book);
+    return res.json(book);
   } catch (err) {
-    res.status(500).json({ message: "Sunucu hatası", error: err });
+    return res.status(500).json({ message: "Sunucu hatası", error: err });
   }
 });
 
+// DELETE /api/books/:id → Kitabı sil
 app.delete("/api/books/:id", async (req, res) => {
   try {
     await Book.findByIdAndDelete(req.params.id);
-    res.status(200).json({ message: "Kitap silindi" });
+    return res.status(200).json({ message: "Kitap silindi" });
   } catch (err) {
-    res.status(500).json({ message: "Silme başarısız", error: err });
+    return res.status(500).json({ message: "Silme başarısız", error: err });
   }
 });
 
+// ─── CHAPTERS ROUTES ─────────────────────────────────────────────────────────────
+
+// GET /api/chapters/:bookId → O kitap ID altındaki tüm .txt bölümleri (filenames) döner
 app.get("/api/chapters/:bookId", (req, res) => {
   const bookDir = path.join(chaptersPath, req.params.bookId);
-  if (!fs.existsSync(bookDir)) return res.status(404).json({ message: "Bölümler bulunamadı" });
-
+  if (!fs.existsSync(bookDir)) {
+    return res.status(404).json({ message: "Bölümler bulunamadı" });
+  }
   fs.readdir(bookDir, (err, files) => {
     if (err) return res.status(500).json({ message: "Dosyalar okunamadı" });
     const txtFiles = files.filter(f => f.endsWith(".txt")).sort();
-    res.json(txtFiles);
+    return res.json(txtFiles);
   });
 });
 
+// GET /api/chapters/:bookId/:filename → O dosyanın (bölüm) içeriğini döner
 app.get("/api/chapters/:bookId/:filename", (req, res) => {
   const filePath = path.join(chaptersPath, req.params.bookId, req.params.filename);
   fs.readFile(filePath, "utf8", (err, content) => {
     if (err) return res.status(404).json({ message: "Bölüm bulunamadı" });
-    res.json({ content });
+    return res.json({ content });
   });
 });
 
+// ─── IMAGE FETCH (Google Images)  ─────────────────────────────────────────────────
 app.get("/api/fetchImage", async (req, res) => {
   const { query } = req.query;
   if (!query || !query.trim()) return res.status(400).json({ message: "Query gerekli." });
@@ -185,12 +295,17 @@ app.get("/api/fetchImage", async (req, res) => {
   try {
     browser = await puppeteer.launch({
       headless: true,
-      args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"],
+      args: ["--no-sandbox","--disable-setuid-sandbox","--disable-dev-shm-usage"],
     });
     const page = await browser.newPage();
-    await page.setUserAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Safari/537.36");
+    await page.setUserAgent(
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Safari/537.36"
+    );
     await page.setViewport({ width: 1280, height: 800 });
-    await page.goto(`https://www.google.com/search?tbm=isch&q=${encodeURIComponent(query)}`, { waitUntil: "networkidle0" });
+    await page.goto(
+      `https://www.google.com/search?tbm=isch&q=${encodeURIComponent(query)}`,
+      { waitUntil: "networkidle0" }
+    );
     await page.evaluate(() => window.scrollBy(0, 800));
     await new Promise(resolve => setTimeout(resolve, 1000));
     await page.waitForSelector('div[data-attrid="images universal"] img', { timeout: 15000 });
@@ -198,62 +313,127 @@ app.get("/api/fetchImage", async (req, res) => {
     const thumbUrls = await page.$$eval('div[data-attrid="images universal"] img', imgs =>
       imgs.map(img => img.getAttribute("src") || img.getAttribute("data-src") || "")
     );
-
     let finalUrl = thumbUrls.find(url => url && !url.startsWith("data:")) || thumbUrls[0];
     if (!finalUrl) throw new Error("Geçerli bir resim URL’si alınamadı.");
-
-    res.json({ imageUrl: finalUrl });
+    return res.json({ imageUrl: finalUrl });
   } catch (err) {
     console.error("🚨 fetchImage hatası:", err);
-    res.status(500).json({ message: "Resim alınamadı.", error: err.toString() });
+    return res.status(500).json({ message: "Resim alınamadı.", error: err.toString() });
   } finally {
     if (browser) await browser.close();
   }
 });
 
+// ─── LASTREAD (Okuma İlerlemesi)  ─────────────────────────────────────────────────
 app.post("/api/lastread/save", async (req, res) => {
   const { userId, bookId, chapter } = req.body;
-
   if (!userId || !bookId || !chapter) {
     return res.status(400).json({ message: "Missing required fields." });
   }
-
   try {
     const existing = await LastRead.findOne({ userId, bookId });
     if (existing) {
-      existing.chapter = chapter;
+      existing.chapter   = chapter;
       existing.timestamp = Date.now();
       await existing.save();
     } else {
       await LastRead.create({ userId, bookId, chapter });
     }
-    res.status(200).json({ message: "Progress saved." });
+    return res.status(200).json({ message: "Progress saved." });
   } catch (err) {
     console.error("❌ LastRead save failed:", err);
-    res.status(500).json({ message: "Failed to save progress." });
+    return res.status(500).json({ message: "Failed to save progress." });
   }
 });
-
 app.get("/api/lastread", async (req, res) => {
   const { userId, bookId } = req.query;
   if (!userId || !bookId) {
     return res.status(400).json({ message: "Missing query parameters." });
   }
-
   try {
     const record = await LastRead.findOne({ userId, bookId });
     if (record) {
-      res.json({ chapter: record.chapter });
+      return res.json({ chapter: record.chapter });
     } else {
-      res.json({ chapter: null });
+      return res.json({ chapter: null });
     }
   } catch (err) {
     console.error("❌ LastRead fetch failed:", err);
-    res.status(500).json({ message: "Failed to fetch last read." });
+    return res.status(500).json({ message: "Failed to fetch last read." });
   }
 });
 
 
+// GET /api/music/:bookId/:chapterIdx → top-10 recommendations
+app.get("/api/music/:bookId/:chapterIdx", async (req, res) => {
+  try {
+    const { bookId, chapterIdx } = req.params;
+    const analysisDir = path.join(chaptersPath, bookId, "ANALYSIS");
+
+    // 1) pick the correct emotion file
+    const files = (await fs.promises.readdir(analysisDir))
+      .filter(f => f.endsWith("_emotion.txt"))
+      .sort();
+    const idx = parseInt(chapterIdx, 10) - 1;     // shift so Chapter 1 → index 0
+    if (isNaN(idx) || idx < 0 || idx >= files.length) {
+      return res.status(400).json({ message: "Invalid chapter index" });
+    }
+    const emoFile = path.join(analysisDir, files[idx]);
+
+    // 2) spawn the Python recommendation script
+    // new: build the full path to the script
+    const scriptPath = path.join(__dirname, "book2Music.py");
+    const py = spawn(
+      "python",
+      [ scriptPath, emoFile ],
+      // you can remove cwd entirely, since scriptPath is absolute
+    );
+
+    let out = "", errOutput = "";
+    py.stdout.on("data", d => out += d.toString());
+    py.stderr.on("data", d => errOutput += d.toString());
+
+    py.on("close", code => {
+      if (code !== 0) {
+        console.error("book2Music error:", errOutput);
+        return res.status(500).json({ message: "Music recommendation failed", error: errOutput });
+      }
+      let recs;
+      try { recs = JSON.parse(out); }
+      catch (e) {
+        console.error("Invalid JSON from book2Music:", out, e);
+        return res.status(500).json({ message: "Bad JSON from recommendation engine" });
+      }
+
+      // 3) enrich each record with title + URL
+        const enriched = recs.map(r => {
+          const info = songInfo.find(row => row.file_name === r.file);
+          return {
+            file:     r.file,
+            title:    info ? info["Song title"] : "Unknown",
+            url:      `http://localhost:5000/music/MusicRawData/${r.file}`,
+            mood:     info ? info["emotion"] : "Unknown",
+            duration: info ? info["duration (min.sec)"] : null,
+            // NEW:
+            artist:   info ? info["platform"]        : "Unknown",
+            image:    `https://picsum.photos/seed/${r.file}/80/80`
+          };
+        });
+      res.json(enriched);
+    });
+
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ message: "Server error in /api/music" });
+  }
+});
+
+// ─── STATIC MUSIC SERVING ────────────────────────────────────────────────────────
+app.use("/music/MusicRawData", express.static(path.join(__dirname, "music", "MusicRawData")));
+
+
+
+// ─── SUNUCU BAŞLAT ────────────────────────────────────────────────────────────────
 const PORT = 5000;
 app.listen(PORT, () => {
   console.log(`🚀 Sunucu http://localhost:${PORT} üzerinde çalışıyor`);

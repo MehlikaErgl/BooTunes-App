@@ -1,0 +1,14 @@
+Emotion distribution for '15_Chapter_11_It_is_with_considerable_difficulty_that_I_remembe.txt'
+
+Excitement  :  22.5%
+Melancholy  :  14.6%
+Sadness     :  13.4%
+Fear        :  11.8%
+Loneliness  :   9.1%
+Tension     :   8.7%
+Romance     :   7.8%
+Joy         :   3.5%
+Neutral     :   3.4%
+Disgust     :   3.0%
+Surprise    :   1.5%
+Anger       :   0.7%

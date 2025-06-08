@@ -1,0 +1,14 @@
+Emotion distribution for '24_Chapter_20_I_sat_one_evening_in_my_laboratory_the_sun_had_se.txt'
+
+Tension     :  29.7%
+Loneliness  :  22.4%
+Fear        :  15.7%
+Excitement  :  13.8%
+Anger       :   6.9%
+Disgust     :   3.5%
+Sadness     :   3.2%
+Surprise    :   2.3%
+Melancholy  :   1.3%
+Neutral     :   0.7%
+Joy         :   0.6%
+Romance     :   0.0%

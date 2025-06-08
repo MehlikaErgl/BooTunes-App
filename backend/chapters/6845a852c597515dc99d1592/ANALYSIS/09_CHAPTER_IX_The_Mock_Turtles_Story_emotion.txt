@@ -1,0 +1,14 @@
+Emotion distribution for '09_CHAPTER_IX_The_Mock_Turtles_Story.txt'
+
+Tension     :  20.8%
+Excitement  :  17.6%
+Melancholy  :   9.0%
+Anger       :   8.6%
+Loneliness  :   8.2%
+Romance     :   6.8%
+Neutral     :   6.0%
+Sadness     :   5.9%
+Surprise    :   5.5%
+Disgust     :   5.2%
+Fear        :   4.6%
+Joy         :   1.9%

@@ -1,0 +1,14 @@
+Emotion distribution for '04_CHAPTER_IV_The_Rabbit_Sends_in_a_Little_Bill.txt'
+
+Tension     :  28.9%
+Excitement  :  28.8%
+Fear        :  13.5%
+Surprise    :   6.5%
+Loneliness  :   5.4%
+Neutral     :   4.2%
+Anger       :   3.9%
+Melancholy  :   3.6%
+Sadness     :   3.2%
+Disgust     :   0.9%
+Romance     :   0.8%
+Joy         :   0.3%

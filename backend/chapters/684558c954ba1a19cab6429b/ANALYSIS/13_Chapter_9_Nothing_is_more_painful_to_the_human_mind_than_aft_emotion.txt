@@ -1,0 +1,14 @@
+Emotion distribution for '13_Chapter_9_Nothing_is_more_painful_to_the_human_mind_than_aft.txt'
+
+Loneliness  :  27.2%
+Fear        :  17.2%
+Sadness     :  14.3%
+Excitement  :  11.2%
+Tension     :   8.6%
+Romance     :   8.4%
+Anger       :   4.9%
+Joy         :   2.1%
+Melancholy  :   2.0%
+Disgust     :   2.0%
+Neutral     :   1.1%
+Surprise    :   1.0%

@@ -1,0 +1,14 @@
+Emotion distribution for '03_CHAPTER_III_A_Caucus-Race_and_a_Long_Tale.txt'
+
+Excitement  :  23.1%
+Tension     :  17.8%
+Melancholy  :  14.6%
+Anger       :  10.4%
+Sadness     :   9.3%
+Neutral     :   8.1%
+Loneliness  :   6.2%
+Surprise    :   4.0%
+Disgust     :   3.3%
+Joy         :   1.7%
+Fear        :   1.2%
+Romance     :   0.3%

@@ -1,0 +1,14 @@
+Emotion distribution for '22_Chapter_18_Day_after_day_week_after_week_passed_away_on_my_r.txt'
+
+Loneliness  :  18.8%
+Excitement  :  15.8%
+Tension     :  15.7%
+Melancholy  :  11.7%
+Sadness     :  11.3%
+Romance     :   7.7%
+Fear        :   7.6%
+Joy         :   7.4%
+Anger       :   2.1%
+Neutral     :   1.1%
+Disgust     :   0.7%
+Surprise    :   0.2%

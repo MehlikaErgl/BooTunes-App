@@ -1,0 +1,14 @@
+Emotion distribution for '02_CHAPTER_II_The_Pool_of_Tears.txt'
+
+Excitement  :  23.9%
+Loneliness  :  17.5%
+Surprise    :  12.9%
+Tension     :  11.8%
+Melancholy  :  10.2%
+Disgust     :   5.4%
+Sadness     :   4.3%
+Fear        :   4.2%
+Neutral     :   3.8%
+Anger       :   3.2%
+Joy         :   2.3%
+Romance     :   0.5%

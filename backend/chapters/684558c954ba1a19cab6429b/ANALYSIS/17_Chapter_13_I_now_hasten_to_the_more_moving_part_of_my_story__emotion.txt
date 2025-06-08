@@ -1,0 +1,14 @@
+Emotion distribution for '17_Chapter_13_I_now_hasten_to_the_more_moving_part_of_my_story_.txt'
+
+Excitement  :  22.1%
+Romance     :  13.5%
+Loneliness  :  13.5%
+Melancholy  :  12.5%
+Joy         :  11.6%
+Sadness     :   9.5%
+Disgust     :   4.8%
+Surprise    :   3.9%
+Neutral     :   3.6%
+Fear        :   3.4%
+Anger       :   1.1%
+Tension     :   0.6%

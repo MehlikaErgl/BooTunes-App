@@ -1,0 +1,14 @@
+Emotion distribution for '08_CHAPTER_VIII_The_Queens_Croquet-Ground.txt'
+
+Excitement  :  29.8%
+Tension     :  27.2%
+Anger       :   8.8%
+Fear        :   8.8%
+Neutral     :   7.4%
+Joy         :   6.7%
+Surprise    :   4.8%
+Loneliness  :   4.5%
+Disgust     :   1.5%
+Sadness     :   0.3%
+Melancholy  :   0.2%
+Romance     :   0.0%

@@ -1,0 +1,14 @@
+Emotion distribution for '02_Letter_2_To_Mrs_Saville_England.txt'
+
+Romance     :  22.2%
+Loneliness  :  19.0%
+Excitement  :  15.4%
+Fear        :   8.6%
+Tension     :   7.7%
+Anger       :   7.6%
+Joy         :   5.0%
+Melancholy  :   4.6%
+Sadness     :   3.5%
+Neutral     :   2.9%
+Disgust     :   2.4%
+Surprise    :   1.0%

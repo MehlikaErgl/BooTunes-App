@@ -1,0 +1,14 @@
+Emotion distribution for '10_CHAPTER_X_The_Lobster_Quadrille.txt'
+
+Excitement  :  31.3%
+Melancholy  :  15.4%
+Surprise    :  11.1%
+Tension     :  11.1%
+Neutral     :   9.1%
+Fear        :   8.1%
+Anger       :   5.5%
+Sadness     :   3.9%
+Disgust     :   2.9%
+Joy         :   0.7%
+Romance     :   0.5%
+Loneliness  :   0.2%

@@ -1,0 +1,14 @@
+Emotion distribution for '28_Chapter_24_My_present_situation_was_one_in_which_all_volunta.txt'
+
+Tension     :  22.9%
+Excitement  :  18.0%
+Loneliness  :  13.3%
+Anger       :  11.6%
+Fear        :  10.0%
+Sadness     :   8.0%
+Romance     :   4.1%
+Disgust     :   3.3%
+Melancholy  :   2.8%
+Joy         :   2.5%
+Neutral     :   1.9%
+Surprise    :   1.5%

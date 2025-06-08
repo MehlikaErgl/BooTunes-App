@@ -1,0 +1,14 @@
+Emotion distribution for '20_Chapter_16_Cursed_cursed_creator_Why_did_I_live_Why_in_that_.txt'
+
+Loneliness  :  20.2%
+Tension     :  19.8%
+Excitement  :  17.3%
+Anger       :  12.8%
+Fear        :  12.3%
+Romance     :   7.7%
+Disgust     :   2.5%
+Sadness     :   2.1%
+Surprise    :   1.8%
+Melancholy  :   1.7%
+Joy         :   1.5%
+Neutral     :   0.2%

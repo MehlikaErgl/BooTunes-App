@@ -1,0 +1,14 @@
+Emotion distribution for '10_Chapter_6_Clerval_then_put_the_following_letter_into_my_hand.txt'
+
+Joy         :  16.2%
+Melancholy  :  15.7%
+Romance     :  15.5%
+Excitement  :  13.3%
+Sadness     :   9.5%
+Tension     :   8.4%
+Loneliness  :   7.4%
+Anger       :   4.1%
+Neutral     :   3.6%
+Disgust     :   3.0%
+Fear        :   2.1%
+Surprise    :   1.1%

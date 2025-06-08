@@ -1,0 +1,14 @@
+Emotion distribution for '05_Chapter_1_I_am_by_birth_a_Genevese_and_my_family_is_one_of_t.txt'
+
+Romance     :  26.8%
+Loneliness  :  16.0%
+Joy         :  11.5%
+Sadness     :  11.2%
+Melancholy  :   9.7%
+Excitement  :   8.7%
+Neutral     :   7.3%
+Disgust     :   3.9%
+Anger       :   2.9%
+Fear        :   1.4%
+Surprise    :   0.5%
+Tension     :   0.2%

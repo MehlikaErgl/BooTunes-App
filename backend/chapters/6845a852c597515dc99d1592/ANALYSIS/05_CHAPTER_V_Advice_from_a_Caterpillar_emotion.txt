@@ -1,0 +1,14 @@
+Emotion distribution for '05_CHAPTER_V_Advice_from_a_Caterpillar.txt'
+
+Tension     :  22.6%
+Excitement  :  20.3%
+Anger       :  15.4%
+Melancholy  :  15.2%
+Fear        :  12.6%
+Neutral     :   5.1%
+Surprise    :   3.4%
+Disgust     :   3.3%
+Sadness     :   2.0%
+Loneliness  :   0.1%
+Joy         :   0.1%
+Romance     :   0.0%

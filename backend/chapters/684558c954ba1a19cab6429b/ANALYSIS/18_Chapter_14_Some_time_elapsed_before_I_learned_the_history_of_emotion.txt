@@ -1,0 +1,14 @@
+Emotion distribution for '18_Chapter_14_Some_time_elapsed_before_I_learned_the_history_of.txt'
+
+Romance     :  21.6%
+Anger       :  15.1%
+Excitement  :  12.4%
+Tension     :  12.0%
+Loneliness  :  11.3%
+Neutral     :   8.4%
+Disgust     :   4.7%
+Sadness     :   4.0%
+Joy         :   3.3%
+Surprise    :   3.2%
+Fear        :   2.9%
+Melancholy  :   1.3%

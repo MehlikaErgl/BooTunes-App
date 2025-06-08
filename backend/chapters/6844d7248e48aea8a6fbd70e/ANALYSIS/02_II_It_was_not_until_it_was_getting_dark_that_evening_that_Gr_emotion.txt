@@ -1,0 +1,14 @@
+Emotion distribution for '02_II_It_was_not_until_it_was_getting_dark_that_evening_that_Gr.txt'
+
+Excitement  :  26.3%
+Tension     :  19.4%
+Loneliness  :  10.7%
+Fear        :   9.6%
+Neutral     :   8.0%
+Melancholy  :   8.0%
+Sadness     :   4.5%
+Surprise    :   4.3%
+Disgust     :   4.0%
+Anger       :   3.4%
+Joy         :   2.0%
+Romance     :   0.0%

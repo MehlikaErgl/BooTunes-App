@@ -1,0 +1,14 @@
+Emotion distribution for '19_Chapter_15_Such_was_the_history_of_my_beloved_cottagers_It_i.txt'
+
+Loneliness  :  24.0%
+Tension     :  16.7%
+Excitement  :  14.1%
+Fear        :  10.3%
+Melancholy  :   8.9%
+Sadness     :   8.0%
+Disgust     :   5.1%
+Romance     :   3.6%
+Anger       :   3.2%
+Joy         :   2.8%
+Surprise    :   2.3%
+Neutral     :   1.0%

@@ -1,0 +1,14 @@
+Emotion distribution for '26_Chapter_22_The_voyage_came_to_an_end_We_landed_and_proceeded.txt'
+
+Tension     :  18.6%
+Romance     :  17.9%
+Loneliness  :  15.8%
+Melancholy  :   9.9%
+Fear        :   9.7%
+Excitement  :   7.7%
+Sadness     :   7.3%
+Joy         :   6.2%
+Anger       :   4.3%
+Disgust     :   1.6%
+Neutral     :   0.9%
+Surprise    :   0.1%

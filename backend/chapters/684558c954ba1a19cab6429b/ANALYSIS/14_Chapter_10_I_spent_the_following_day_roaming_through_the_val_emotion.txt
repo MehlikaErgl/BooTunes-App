@@ -1,0 +1,14 @@
+Emotion distribution for '14_Chapter_10_I_spent_the_following_day_roaming_through_the_val.txt'
+
+Loneliness  :  22.3%
+Melancholy  :  13.9%
+Tension     :  13.8%
+Sadness     :  11.1%
+Anger       :  10.7%
+Fear        :   9.6%
+Excitement  :   8.8%
+Disgust     :   3.9%
+Neutral     :   2.9%
+Joy         :   2.3%
+Surprise    :   0.6%
+Romance     :   0.0%

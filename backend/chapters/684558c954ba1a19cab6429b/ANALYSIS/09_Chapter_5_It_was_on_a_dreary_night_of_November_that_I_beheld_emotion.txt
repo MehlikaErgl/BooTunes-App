@@ -1,0 +1,14 @@
+Emotion distribution for '09_Chapter_5_It_was_on_a_dreary_night_of_November_that_I_beheld.txt'
+
+Tension     :  25.9%
+Excitement  :  21.8%
+Fear        :  14.6%
+Loneliness  :  12.4%
+Joy         :   7.0%
+Disgust     :   4.7%
+Sadness     :   3.1%
+Romance     :   3.0%
+Surprise    :   2.4%
+Anger       :   2.4%
+Melancholy  :   2.2%
+Neutral     :   0.4%

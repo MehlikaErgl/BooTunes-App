@@ -1,0 +1,14 @@
+Emotion distribution for '21_Chapter_17_The_being_finished_speaking_and_fixed_his_looks_u.txt'
+
+Loneliness  :  20.5%
+Tension     :  19.1%
+Romance     :  17.2%
+Anger       :  13.5%
+Excitement  :   9.0%
+Fear        :   6.6%
+Disgust     :   5.6%
+Sadness     :   4.6%
+Joy         :   2.3%
+Neutral     :   1.0%
+Melancholy  :   0.4%
+Surprise    :   0.1%

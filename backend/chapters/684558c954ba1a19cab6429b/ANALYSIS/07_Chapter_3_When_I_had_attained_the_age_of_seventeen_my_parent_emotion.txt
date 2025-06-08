@@ -1,0 +1,14 @@
+Emotion distribution for '07_Chapter_3_When_I_had_attained_the_age_of_seventeen_my_parent.txt'
+
+Loneliness  :  18.3%
+Excitement  :  16.3%
+Melancholy  :  13.7%
+Sadness     :  12.5%
+Tension     :   7.0%
+Neutral     :   6.7%
+Anger       :   6.3%
+Romance     :   5.7%
+Disgust     :   5.6%
+Fear        :   4.0%
+Joy         :   3.3%
+Surprise    :   0.6%

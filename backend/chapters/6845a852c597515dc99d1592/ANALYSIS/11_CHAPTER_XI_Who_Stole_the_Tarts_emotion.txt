@@ -1,0 +1,14 @@
+Emotion distribution for '11_CHAPTER_XI_Who_Stole_the_Tarts.txt'
+
+Tension     :  33.3%
+Excitement  :  21.0%
+Neutral     :  12.3%
+Anger       :   8.2%
+Joy         :   6.2%
+Surprise    :   5.9%
+Disgust     :   3.8%
+Fear        :   3.6%
+Melancholy  :   2.7%
+Sadness     :   1.5%
+Loneliness  :   1.2%
+Romance     :   0.2%

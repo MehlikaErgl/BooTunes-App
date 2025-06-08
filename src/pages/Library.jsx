@@ -32,9 +32,13 @@ export default function Library() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedBookId, setSelectedBookId] = useState(null);
 
+  // { bookId: boolean } → true: analiz hazır, false: hâlâ “Preparing”
+  const [analysisReadyMap, setAnalysisReadyMap] = useState({});
+
   const navigate = useNavigate();
   const isDark = theme === "dark";
 
+  // Tema değişikliklerini dinle
   useEffect(() => {
     const observer = new MutationObserver(() => {
       setTheme(document.body.getAttribute("data-theme") || "light");
@@ -43,11 +47,30 @@ export default function Library() {
     return () => observer.disconnect();
   }, []);
 
+  // ==================================================================
+  // 1) Kitap listesini getir ve her kitap için poll başlat
+  // ==================================================================
   const fetchMyBooks = () => {
     const userId = localStorage.getItem("userId");
+    if (!userId) return;
+
     fetch(`http://localhost:5000/api/books?userId=${userId}`)
       .then((res) => res.json())
-      .then((data) => setMyBookList(data))
+      .then((data) => {
+        setMyBookList(data);
+
+        // Tüm kitapları başlangıçta “hazır değil” say, sonra checkIfNewAndPoll ile kontrol et
+        const initialMap = {};
+        data.forEach((book) => {
+          initialMap[book._id] = false;
+        });
+        setAnalysisReadyMap(initialMap);
+
+        // Her bir kitap için split+analiz durumunu kontrol et
+        data.forEach((book) => {
+          checkIfNewAndPoll(book._id);
+        });
+      })
       .catch((err) => console.error("Kitaplar alınamadı:", err));
   };
 
@@ -55,6 +78,131 @@ export default function Library() {
     fetchMyBooks();
   }, []);
 
+  // ==================================================================
+  // 2) checkIfNewAndPoll(bookId):
+  //    1) /api/chapters/:bookId → "00_Table_of_Contents.txt" hariç gerçek bölüm sayısını al
+  //       → <2 ise split hâlâ sürüyor; pollBookAnalysis()’e bırak
+  //       → ≥2 ise devam et
+  //    2) /api/analysis/:bookId → ANALYSIS klasöründeki "_emotion.txt" dosyaları
+  //       → İlk iki gerçek bölümün "_emotion.txt" var mı? → varsa ready=true
+  //       → yoksa pollBookAnalysis() ile beklemeye devam et
+  // ==================================================================
+  const checkIfNewAndPoll = async (bookId) => {
+    try {
+      // 2.a) Bölümlere bak (TOC'u gözardı et)
+      const chaptersRes = await fetch(`http://localhost:5000/api/chapters/${bookId}`);
+      if (!chaptersRes.ok) {
+        // Henüz chapters dizini oluşmamış, 3 sn sonra tekrar dene
+        markBookNotReady(bookId);
+        pollBookAnalysis(bookId);
+        return;
+      }
+      const chapterFiles = await chaptersRes.json();
+      // “00_Table_of_Contents.txt”'i çıkart
+      const realChapters = chapterFiles.filter((fn) => fn !== "00_Table_of_Contents.txt");
+      if (!Array.isArray(realChapters) || realChapters.length < 1) {
+        // Henüz iki bölüm bile yok, 3 sn sonra yeniden dene
+        markBookNotReady(bookId);
+        pollBookAnalysis(bookId);
+        return;
+      }
+
+      // 2.b) ANALYSIS klasörünü kontrol et
+      const analysisRes = await fetch(`http://localhost:5000/api/analysis/${bookId}`);
+      if (!analysisRes.ok) {
+        markBookNotReady(bookId);
+        pollBookAnalysis(bookId);
+        return;
+      }
+      const analysisFiles = await analysisRes.json();
+
+      // İlk iki gerçek bölümün emotion dosya adları:
+      const neededEmotionFiles = realChapters
+        .slice(0, 1)
+        .map((fn) => fn.replace(".txt", "_emotion.txt"));
+
+      const hasAll = neededEmotionFiles.every((fname) =>
+        analysisFiles.includes(fname)
+      );
+
+      if (hasAll) {
+        // İki dosya da varsa, hazır olunduğunu işaretle
+        setAnalysisReadyMap((prev) => ({
+          ...prev,
+          [bookId]: true,
+        }));
+      } else {
+        markBookNotReady(bookId);
+        pollBookAnalysis(bookId);
+      }
+    } catch (err) {
+      console.error(`checkIfNewAndPoll (${bookId}) hatası:`, err);
+      // 5 sn sonra yeniden dene
+      setTimeout(() => checkIfNewAndPoll(bookId), 5000);
+    }
+  };
+
+  // ==================================================================
+  // 3) map[bookId] = false (blur’un devam etmesi için)
+  // ==================================================================
+  const markBookNotReady = (bookId) => {
+    setAnalysisReadyMap((prev) => ({
+      ...prev,
+      [bookId]: false,
+    }));
+  };
+
+  // ==================================================================
+  // 4) pollBookAnalysis(bookId):
+  //    - 3 sn’de bir chapters kontrolü → ≥2 txt bekle
+  //    - Ondan sonra analysis kontrolü → ilk iki _emotion.txt bekle
+  //    - Hazırsa map[bookId]=true, değilse yeniden dene
+  // ==================================================================
+  const pollBookAnalysis = async (bookId) => {
+    try {
+      const chaptersRes = await fetch(`http://localhost:5000/api/chapters/${bookId}`);
+      if (!chaptersRes.ok) {
+        setTimeout(() => pollBookAnalysis(bookId), 3000);
+        return;
+      }
+      const chapterFiles = await chaptersRes.json();
+      const realChapters = chapterFiles.filter((fn) => fn !== "00_Table_of_Contents.txt");
+      if (!Array.isArray(realChapters) || realChapters.length < 1) {
+        setTimeout(() => pollBookAnalysis(bookId), 3000);
+        return;
+      }
+
+      const analysisRes = await fetch(`http://localhost:5000/api/analysis/${bookId}`);
+      if (!analysisRes.ok) {
+        setTimeout(() => pollBookAnalysis(bookId), 3000);
+        return;
+      }
+      const analysisFiles = await analysisRes.json();
+      const neededEmotionFiles = realChapters
+        .slice(0, 1)
+        .map((fn) => fn.replace(".txt", "_emotion.txt"));
+
+      const hasAll = neededEmotionFiles.every((fname) =>
+        analysisFiles.includes(fname)
+      );
+
+      if (hasAll) {
+        setAnalysisReadyMap((prev) => ({
+          ...prev,
+          [bookId]: true,
+        }));
+      } else {
+        setTimeout(() => pollBookAnalysis(bookId), 3000);
+      }
+    } catch (err) {
+      console.error(`pollBookAnalysis (${bookId}) hatası:`, err);
+      setTimeout(() => pollBookAnalysis(bookId), 5000);
+    }
+  };
+
+  // ==================================================================
+  // 5) PDF seçildiğinde başlık otomatiği ve resim bulma
+  // ==================================================================
   const handlePdfChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -72,20 +220,27 @@ export default function Library() {
     }
     setLoadingImage(true);
     try {
-      const response = await fetch(`http://localhost:5000/api/fetchImage?query=${encodeURIComponent(title)}`);
+      const response = await fetch(
+        `http://localhost:5000/api/fetchImage?query=${encodeURIComponent(title)}`
+      );
       const data = await response.json();
       if (data.imageUrl) {
         setImageUrl(data.imageUrl);
         setIsTitleConfirmed(true);
-      } else throw new Error("Image not found.");
+      } else {
+        throw new Error("Image not found.");
+      }
     } catch (err) {
-      console.error("❌Image cannot found:", err);
+      console.error("❌ Image cannot found:", err);
       setModalMessage("Image cannot be found, please enter manually.");
     } finally {
       setLoadingImage(false);
     }
   };
 
+  // ==================================================================
+  // 6) Yeni kitap ekleme (“Add Book”)
+  // ==================================================================
   const handleBookSubmit = (e) => {
     e.preventDefault();
     if (!title.trim() || !imageUrl.trim() || !pdfFile) {
@@ -113,11 +268,14 @@ export default function Library() {
         setModalMessage("Book uploaded successfully ✅");
       })
       .catch((err) => {
-        console.error("❌Book cannot be uploaded:", err);
+        console.error("❌ Book cannot be uploaded:", err);
         setModalMessage("Book cannot be uploaded");
       });
   };
 
+  // ==================================================================
+  // 7) Kitap silme
+  // ==================================================================
   const handleRemove = (id) => {
     setSelectedBookId(id);
     setShowDeleteModal(true);
@@ -130,6 +288,11 @@ export default function Library() {
       .then((res) => {
         if (res.ok) {
           setMyBookList((prev) => prev.filter((book) => book._id !== selectedBookId));
+          setAnalysisReadyMap((prev) => {
+            const copy = { ...prev };
+            delete copy[selectedBookId];
+            return copy;
+          });
         }
       })
       .catch((err) => console.error("Deleting Error:", err))
@@ -139,10 +302,40 @@ export default function Library() {
       });
   };
 
+  // ==================================================================
+  // 8) Arama filtresi
+  // ==================================================================
   const filteredBooks = myBookList.filter((book) =>
     book.title?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  // ==================================================================
+  // 9) Her kartın style ve overlay mantığı
+  // ==================================================================
+  const cardStyle = (bookId) => ({
+    filter: analysisReadyMap[bookId] ? "none" : "blur(4px)",
+    transition: "filter 0.3s ease-in-out",
+    position: "relative",
+    maxHeight: "400px"
+  });
+
+  const overlayStyle = {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(255,255,255,0.7)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    flexDirection: "column",
+    zIndex: 10,
+  };
+
+  // ==================================================================
+  // 10) Stil Değişkenleri
+  // ==================================================================
   const blurStyle = {
     backdropFilter: "blur(6px)",
     backgroundColor: isDark ? "rgba(255,255,255,0.02)" : "rgba(200,200,200,0.66)",
@@ -151,189 +344,234 @@ export default function Library() {
   };
 
   const cardBg = isDark ? "rgba(255,255,255,0.6)" : "#ccc";
-  const buttonColor = isDark ? "#000000" : "#000"; // Aydınlık modda lacivert yerine siyah
-  const searchBorderColor = isDark ? "#ccc" : "#000"; // Aydınlık modda lacivert yerine siyah
-  const textColor = isDark ? "#f1f1f1" : "#000"; // Aydınlık modda siyah
+  const buttonColor = isDark ? "#000000" : "#000";
+  const searchBorderColor = isDark ? "#ccc" : "#000";
+  const textColor = isDark ? "#f1f1f1" : "#000";
   const contentBg = isDark ? "rgba(51, 46, 46, 0.4)" : undefined;
   const cardBorderColor = isDark ? "#cccccc" : "#001f3f";
 
   return (
     <Container
-  fluid
-  className="py-4 px-4"
-  style={{
-    minHeight: "100vh",
-    backgroundColor: contentBg,
-    color: textColor,
-    fontFamily,
-    fontSize,
-    lineHeight,
-    overflowY: "auto"
-  }}
->
-  <div className="text-center mb-3">
-    <Button
-      variant="outline-primary"
-      className="px-4 py-2"
-      onClick={() => setShowUploadPanel(!showUploadPanel)}
+      fluid
+      className="py-4 px-4"
       style={{
-        backgroundColor: isDark ? "#f0f0f0" : "#001f3f",
-        borderColor: isDark ? "#f0f0f0" : "#001f3f",
-        color: isDark ? "#111" : "#fff",
-        fontWeight: "bold"
+        minHeight: "100vh",
+        backgroundColor: contentBg,
+        color: textColor,
+        fontFamily,
+        fontSize,
+        lineHeight,
+        overflowY: "auto"
       }}
     >
-      📤 Upload Book
-    </Button>
-  </div>
-
-  <div style={{ width: "100%", paddingBottom: "50px" }}>
-    <AnimatePresence>
-      {showUploadPanel && (
-        <motion.div
-          key="uploadPanel"
-          initial={{ opacity: 0, height: 0, scaleY: 0.9 }}
-          animate={{ opacity: 1, height: "auto", scaleY: 1 }}
-          exit={{ opacity: 0, height: 0, scaleY: 0.9 }}
-          transition={{ duration: 0.4, ease: "easeInOut" }}
-          className="mb-4"
-          style={{ overflow: "hidden" }}
+      <div className="text-center mb-3">
+        <Button
+          variant="outline-primary"
+          className="px-4 py-2"
+          onClick={() => setShowUploadPanel(!showUploadPanel)}
+          style={{
+            backgroundColor: isDark ? "#f0f0f0" : "#001f3f",
+            borderColor: isDark ? "#f0f0f0" : "#001f3f",
+            color: isDark ? "#111" : "#fff",
+            fontWeight: "bold"
+          }}
         >
-          <Form onSubmit={handleBookSubmit} style={blurStyle}>
-            <Row>
-              <Col md={6}>
-                <Form.Label>Choose PDF:</Form.Label>
-                <Form.Control type="file" accept="application/pdf" onChange={handlePdfChange} required />
-              </Col>
-              <Col md={6}>
-                <Form.Label>Book Title:</Form.Label>
-                <InputGroup>
-                  <FormControl
-                    value={title}
-                    onChange={(e) => {
-                      setTitle(e.target.value);
-                      setIsTitleConfirmed(false);
-                      setImageUrl("");
+          📤 Upload Book
+        </Button>
+      </div>
+
+      <div style={{ width: "100%", paddingBottom: "50px" }}>
+        <AnimatePresence>
+          {showUploadPanel && (
+            <motion.div
+              key="uploadPanel"
+              initial={{ opacity: 0, height: 0, scaleY: 0.9 }}
+              animate={{ opacity: 1, height: "auto", scaleY: 1 }}
+              exit={{ opacity: 0, height: 0, scaleY: 0.9 }}
+              transition={{ duration: 0.4, ease: "easeInOut" }}
+              className="mb-4"
+              style={{ overflow: "hidden" }}
+            >
+              <Form onSubmit={handleBookSubmit} style={blurStyle}>
+                <Row>
+                  <Col md={6}>
+                    <Form.Label>Choose PDF:</Form.Label>
+                    <Form.Control
+                      type="file"
+                      accept="application/pdf"
+                      onChange={handlePdfChange}
+                      required
+                    />
+                  </Col>
+                  <Col md={6}>
+                    <Form.Label>Book Title:</Form.Label>
+                    <InputGroup>
+                      <FormControl
+                        value={title}
+                        onChange={(e) => {
+                          setTitle(e.target.value);
+                          setIsTitleConfirmed(false);
+                          setImageUrl("");
+                        }}
+                        required
+                      />
+                      <Button
+                        onClick={handleConfirmTitle}
+                        disabled={!title.trim() || loadingImage}
+                      >
+                        {loadingImage ? (
+                          <Spinner animation="border" size="sm" />
+                        ) : isTitleConfirmed ? (
+                          "✓"
+                        ) : (
+                          "Confirm"
+                        )}
+                      </Button>
+                    </InputGroup>
+                  </Col>
+                </Row>
+                <Form.Label className="mt-3">Image URL:</Form.Label>
+                <FormControl
+                  value={imageUrl}
+                  onChange={(e) => setImageUrl(e.target.value)}
+                  required
+                />
+                <div
+                  style={{
+                    fontSize: "0.85rem",
+                    marginTop: "5px",
+                    marginBottom: "5px",
+                    color: isDark ? "#fff" : "#001f3f"
+                  }}
+                >
+                  *You can manually add the book cover image URL or click Confirm to auto-generate one.
+                </div>
+                <div className="d-flex justify-content-center">
+                  <Button
+                    type="submit"
+                    className="mt-2"
+                    style={{
+                      width: "160px",
+                      backgroundColor: "#e6f2ff",
+                      borderColor: "#b3d9ff",
+                      borderWidth: "2px",
+                      color: "#001f3f",
+                      fontWeight: "bold"
                     }}
-                    required
-                  />
-                  <Button onClick={handleConfirmTitle} disabled={!title.trim() || loadingImage}>
-                    {loadingImage ? <Spinner animation="border" size="sm" /> : isTitleConfirmed ? "✓" : "Confirm"}
+                  >
+                    ➕ Add Book
                   </Button>
-                </InputGroup>
-              </Col>
-            </Row>
-            <Form.Label className="mt-3">Image URL:</Form.Label>
-            <FormControl
-              value={imageUrl}
-              onChange={(e) => setImageUrl(e.target.value)}
-              required
-            />
-            <div style={{ fontSize: "0.85rem", marginTop: "5px", marginBottom: "5px", color: isDark ? "#fff" : "#001f3f" }}>
-              *You can manually add the book cover image URL or click Confirm to auto-generate one.
-            </div>
-            <div className="d-flex justify-content-center">
-              <Button
-                type="submit"
-                className="mt-2"
+                </div>
+              </Form>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <Row className="justify-content-center mb-3">
+          <Col xs={12} md={6} lg={4}>
+            <InputGroup>
+              <FormControl
+                placeholder="Search books..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
                 style={{
-                  width: "160px",
-                  backgroundColor: "#e6f2ff",
-                  borderColor: "#b3d9ff",
-                  borderWidth: "2px",
+                  backgroundColor: isDark ? "#fff" : "#eaeaea",
                   color: "#001f3f",
-                  fontWeight: "bold"
+                  border: `2px solid ${searchBorderColor}`
+                }}
+              />
+              <Button
+                style={{
+                  backgroundColor: isDark ? "#555" : buttonColor,
+                  borderColor: isDark ? "#555" : buttonColor
                 }}
               >
-                ➕ Add Book
+                🔍
               </Button>
-            </div>
-          </Form>
-        </motion.div>
-      )}
-    </AnimatePresence>
+            </InputGroup>
+          </Col>
+        </Row>
 
-    <Row className="justify-content-center mb-3">
-      <Col xs={12} md={6} lg={4}>
-        <InputGroup>
-          <FormControl
-            placeholder="Search books..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            style={{
-              backgroundColor: isDark ? "#fff" : "#eaeaea",
-              color: "#001f3f",
-              border: `2px solid ${searchBorderColor}`
-            }}
-          />
-          <Button
-            style={{
-              backgroundColor: isDark ? "#555" : buttonColor,
-              borderColor: isDark ? "#555" : buttonColor
-            }}
+        <Row className="gx-4 gy-4">
+          {filteredBooks.map((book) => (
+            <Col xs={12} sm={6} md={4} lg={3} key={book._id}>
+              <div style={{ position: "relative" }}>
+                <Card
+                  style={{
+                    backgroundColor: cardBg,
+                    color: textColor,
+                    height: "100%",
+                    border: `2px solid ${cardBorderColor}`,
+                    borderRadius: "7px",
+                    ...cardStyle(book._id)
+                  }}
+                >
+                  <Card.Img
+                    variant="top"
+                    src={book.image}
+                    style={{ height: "200px", objectFit: "cover" }}
+                  />
+                  <Card.Body className="d-flex flex-column align-items-center">
+                    <Card.Title className="text-center">{book.title}</Card.Title>
+                    <Button
+                      variant="outline-primary"
+                      className="mb-2"
+                      onClick={() => navigate(`/readingbook/${book._id}`)}
+                      style={{
+                        fontWeight: "bold",
+                        width: "150px",
+                        borderWidth: "2px",
+                        marginTop: 10
+                      }}
+                      disabled={!analysisReadyMap[book._id]}
+                    >
+                      📖 Read
+                    </Button>
+                    <Button
+                      variant="outline-danger"
+                      onClick={() => handleRemove(book._id)}
+                      style={{ fontWeight: "bold", width: "150px", borderWidth: "2px" }}
+                    >
+                      Remove
+                    </Button>
+                  </Card.Body>
+                </Card>
+
+                {!analysisReadyMap[book._id] && (
+                  <div style={overlayStyle}>
+                    <Spinner animation="border" />
+                    <div style={{ marginTop: "0.5rem" }}>Preparing book...</div>
+                  </div>
+                )}
+              </div>
+            </Col>
+          ))}
+        </Row>
+      </div>
+
+      {/* Silme Onay Modalı */}
+      <Modal show={showDeleteModal} onHide={() => setShowDeleteModal(false)} centered>
+        <div
+          style={{
+            backgroundColor: isDark ? "rgba(0, 31, 63, 0.9)" : "#fff",
+            borderRadius: "7px",
+            padding: "1rem",
+            color: isDark ? "#fff" : "#000"
+          }}
+        >
+          <Modal.Header closeButton style={{ border: "none", backgroundColor: "transparent" }}>
+            <Modal.Title className="text-center w-100">Confirm Deletion</Modal.Title>
+          </Modal.Header>
+          <Modal.Body className="text-center">Are you sure you want to delete this book?</Modal.Body>
+          <Modal.Footer
+            className="justify-content-center"
+            style={{ backgroundColor: "transparent", borderTop: "none" }}
           >
-            🔍
-          </Button>
-        </InputGroup>
-      </Col>
-    </Row>
-
-    <Row className="gx-4 gy-4">
-      {filteredBooks.map((book) => (
-        <Col xs={12} sm={6} md={4} lg={3} key={book._id}>
-          <Card style={{ backgroundColor: cardBg, color: textColor, height: "100%", maxHeight: "400px", border: `2px solid ${cardBorderColor}`, borderRadius: "7px" }}>
-            <Card.Img
-              variant="top"
-              src={book.image}
-              style={{ height: "200px", objectFit: "cover" }}
-            />
-            <Card.Body className="d-flex flex-column align-items-center">
-              <Card.Title className="text-center">{book.title}</Card.Title>
-              <Button
-                variant="outline-primary"
-                className="mb-2"
-                onClick={() => navigate(`/readingbook/${book._id}`)}
-                style={{ fontWeight: "bold", width: "150px", borderWidth: "2px", marginTop: 10 }}
-              >
-                📖 Read
-              </Button>
-              <Button
-                variant="outline-danger"
-                onClick={() => handleRemove(book._id)}
-                style={{ fontWeight: "bold", width: "150px", borderWidth: "2px" }}
-              >
-                Remove
-              </Button>
-            </Card.Body>
-          </Card>
-        </Col>
-      ))}
-    </Row>
-  </div>
-
-  <Modal show={showDeleteModal} onHide={() => setShowDeleteModal(false)} centered>
-    <div
-      style={{
-        backgroundColor: isDark ? "rgba(0, 31, 63, 0.9)" : "#fff",
-        borderRadius: "7px",
-        padding: "1rem",
-        color: isDark ? "#fff" : "#000"
-      }}
-    >
-      <Modal.Header closeButton style={{ border: "none", backgroundColor: "transparent" }}>
-        <Modal.Title className="text-center w-100">Confirm Deletion</Modal.Title>
-      </Modal.Header>
-      <Modal.Body className="text-center">
-        Are you sure you want to delete this book?
-      </Modal.Body>
-      <Modal.Footer className="justify-content-center" style={{ backgroundColor: "transparent", borderTop: "none" }}>
-        <Button variant="danger" onClick={confirmDelete}>Yes, Remove</Button>
-        <Button variant="secondary" onClick={() => setShowDeleteModal(false)} className="ms-3">Cancel</Button>
-      </Modal.Footer>
-    </div>
-  </Modal>
-
-</Container>
-
+            <Button variant="danger" onClick={confirmDelete}>Yes, Remove</Button>
+            <Button variant="secondary" onClick={() => setShowDeleteModal(false)} className="ms-3">Cancel</Button>
+          </Modal.Footer>
+        </div>
+      </Modal>
+    </Container>
   );
 }

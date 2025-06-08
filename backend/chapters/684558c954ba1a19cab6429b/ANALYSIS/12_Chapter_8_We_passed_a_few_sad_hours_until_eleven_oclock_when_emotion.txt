@@ -1,0 +1,14 @@
+Emotion distribution for '12_Chapter_8_We_passed_a_few_sad_hours_until_eleven_oclock_when.txt'
+
+Tension     :  25.3%
+Fear        :  16.2%
+Loneliness  :  13.2%
+Excitement  :  12.7%
+Sadness     :  12.2%
+Anger       :   7.2%
+Surprise    :   3.9%
+Disgust     :   3.7%
+Joy         :   2.2%
+Neutral     :   2.0%
+Melancholy  :   1.4%
+Romance     :   0.1%

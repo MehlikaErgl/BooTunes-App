@@ -1,0 +1,14 @@
+Emotion distribution for '08_Chapter_4_From_this_day_natural_philosophy_and_particularly_.txt'
+
+Excitement  :  33.3%
+Tension     :  16.1%
+Fear        :  12.3%
+Joy         :   8.8%
+Loneliness  :   5.5%
+Disgust     :   5.1%
+Anger       :   4.7%
+Surprise    :   4.1%
+Melancholy  :   3.9%
+Neutral     :   3.3%
+Sadness     :   1.5%
+Romance     :   1.2%

@@ -1,0 +1,14 @@
+Emotion distribution for '01_I_One_morning_when_Gregor_Samsa_woke_from_troubled_dreams_he.txt'
+
+Tension     :  26.6%
+Excitement  :  25.6%
+Neutral     :  10.7%
+Fear        :   7.8%
+Surprise    :   6.8%
+Anger       :   5.8%
+Loneliness  :   4.9%
+Melancholy  :   4.3%
+Sadness     :   3.1%
+Disgust     :   2.6%
+Joy         :   1.5%
+Romance     :   0.2%

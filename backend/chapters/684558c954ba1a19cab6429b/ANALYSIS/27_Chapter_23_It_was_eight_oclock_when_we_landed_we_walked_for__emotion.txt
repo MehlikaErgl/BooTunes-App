@@ -1,0 +1,14 @@
+Emotion distribution for '27_Chapter_23_It_was_eight_oclock_when_we_landed_we_walked_for_.txt'
+
+Tension     :  22.7%
+Fear        :  21.9%
+Excitement  :  19.3%
+Loneliness  :  14.7%
+Anger       :   8.4%
+Sadness     :   5.2%
+Disgust     :   2.8%
+Romance     :   2.5%
+Surprise    :   1.6%
+Neutral     :   0.8%
+Melancholy  :   0.2%
+Joy         :   0.0%

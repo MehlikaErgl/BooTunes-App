@@ -1,0 +1,14 @@
+Emotion distribution for '12_CHAPTER_XII_Alices_Evidence.txt'
+
+Excitement  :  34.5%
+Tension     :  19.4%
+Anger       :  11.6%
+Melancholy  :  10.6%
+Neutral     :   7.9%
+Sadness     :   4.7%
+Disgust     :   3.7%
+Fear        :   3.6%
+Surprise    :   3.5%
+Joy         :   0.5%
+Romance     :   0.0%
+Loneliness  :   0.0%

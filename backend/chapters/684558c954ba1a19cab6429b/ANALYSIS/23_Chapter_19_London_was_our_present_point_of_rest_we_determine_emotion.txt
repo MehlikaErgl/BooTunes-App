@@ -1,0 +1,14 @@
+Emotion distribution for '23_Chapter_19_London_was_our_present_point_of_rest_we_determine.txt'
+
+Loneliness  :  23.7%
+Excitement  :  18.7%
+Tension     :  13.6%
+Melancholy  :   9.9%
+Fear        :   8.4%
+Sadness     :   7.2%
+Joy         :   6.7%
+Anger       :   3.2%
+Disgust     :   3.2%
+Neutral     :   3.1%
+Romance     :   1.9%
+Surprise    :   0.3%

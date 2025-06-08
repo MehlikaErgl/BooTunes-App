@@ -1,0 +1,14 @@
+Emotion distribution for '11_Chapter_7_On_my_return_I_found_the_following_letter_from_my_.txt'
+
+Tension     :  24.7%
+Loneliness  :  15.3%
+Fear        :  14.9%
+Sadness     :  14.7%
+Excitement  :  14.1%
+Melancholy  :   4.8%
+Disgust     :   3.0%
+Surprise    :   2.2%
+Anger       :   2.1%
+Romance     :   1.5%
+Neutral     :   1.4%
+Joy         :   1.2%

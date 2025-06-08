@@ -1,0 +1,14 @@
+Emotion distribution for '25_Chapter_21_I_was_soon_introduced_into_the_presence_of_the_ma.txt'
+
+Tension     :  24.4%
+Fear        :  17.3%
+Loneliness  :  16.6%
+Excitement  :  16.4%
+Sadness     :   8.4%
+Anger       :   4.5%
+Disgust     :   3.8%
+Surprise    :   3.2%
+Romance     :   1.9%
+Joy         :   1.3%
+Melancholy  :   1.2%
+Neutral     :   0.9%

@@ -1,0 +1,14 @@
+Emotion distribution for '16_Chapter_12_I_lay_on_my_straw_but_I_could_not_sleep_I_thought.txt'
+
+Melancholy  :  19.2%
+Excitement  :  17.6%
+Romance     :  14.0%
+Loneliness  :  10.2%
+Surprise    :   9.0%
+Sadness     :   8.9%
+Disgust     :   8.2%
+Neutral     :   4.8%
+Joy         :   4.5%
+Anger       :   1.8%
+Fear        :   1.5%
+Tension     :   0.2%

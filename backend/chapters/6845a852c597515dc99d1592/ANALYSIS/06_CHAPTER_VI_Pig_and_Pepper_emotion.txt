@@ -1,0 +1,14 @@
+Emotion distribution for '06_CHAPTER_VI_Pig_and_Pepper.txt'
+
+Excitement  :  33.3%
+Tension     :  25.2%
+Disgust     :   8.1%
+Anger       :   8.1%
+Fear        :   6.9%
+Neutral     :   6.8%
+Surprise    :   6.4%
+Loneliness  :   1.7%
+Melancholy  :   1.2%
+Sadness     :   1.2%
+Joy         :   0.5%
+Romance     :   0.4%

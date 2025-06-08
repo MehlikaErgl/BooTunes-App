@@ -1,0 +1,14 @@
+Emotion distribution for '03_III_No-one_dared_to_remove_the_apple_lodged_in_Gregors_flesh.txt'
+
+Excitement  :  26.4%
+Tension     :  18.5%
+Neutral     :  10.5%
+Melancholy  :   8.0%
+Disgust     :   6.3%
+Romance     :   5.9%
+Surprise    :   5.5%
+Anger       :   5.4%
+Fear        :   4.9%
+Loneliness  :   3.7%
+Sadness     :   3.1%
+Joy         :   1.7%

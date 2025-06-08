@@ -1,0 +1,14 @@
+Emotion distribution for '04_Letter_4_To_Mrs_Saville_England.txt'
+
+Excitement  :  30.4%
+Melancholy  :  11.5%
+Tension     :  11.0%
+Fear        :  10.3%
+Sadness     :   9.7%
+Neutral     :   7.4%
+Loneliness  :   6.8%
+Joy         :   4.5%
+Anger       :   3.4%
+Surprise    :   2.6%
+Disgust     :   1.7%
+Romance     :   0.8%

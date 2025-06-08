@@ -1,0 +1,727 @@
+// File: src/pages/ReadingBook.jsx
+
+import React, { useEffect, useState, useCallback } from "react";
+import {
+  Button,
+  Spinner,
+  Modal
+} from "react-bootstrap";
+import { useNavigate, useParams } from "react-router-dom";
+import { useUserSettings } from "../context/UserSettingsContext";
+import {
+  FiPlay,
+  FiPause,
+  FiPlus,
+  FiSkipBack,
+  FiSkipForward
+} from "react-icons/fi";
+
+export default function ReadingBook() {
+  const [theme, setTheme] = useState(localStorage.getItem("theme") || "light");
+
+  // “chapters” artık TOC dosyasını da kapsayacak (sıfırıncı indeks = 00_Table_of_Contents.txt)
+  const [chapters, setChapters] = useState([]); 
+
+  // İçerik metni (TOC veya gerçek bölüm)
+  const [selectedContent, setSelectedContent] = useState("");
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [loading, setLoading] = useState(false);
+
+  // Analiz kontrolü ile ilgili state’ler
+  const [analysisReady, setAnalysisReady] = useState(false);
+  const [currentChapterReady, setCurrentChapterReady] = useState(false);
+  const [checkingAnalysis, setCheckingAnalysis] = useState(false);
+
+  // Özet ve diğer modal state’leri (değişmedi)
+  const [summaryModal, setSummaryModal] = useState(false);
+  const [summaryResult, setSummaryResult] = useState("");
+  const [summarySelectModal, setSummarySelectModal] = useState(false);
+  const [selectedChapterToSummarize, setSelectedChapterToSummarize] = useState("");
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [playlist, setPlaylist] = useState("general");
+  const [showMenu, setShowMenu] = useState(false);
+  const [fontSliderValue, setFontSliderValue] = useState(17);
+  const [isAdded, setIsAdded] = useState(false);
+
+  // Fade efekti için
+  const [fadeIn, setFadeIn] = useState(true);
+
+  // LastRead’ın tamamlanıp tamamlanmadığını takip ederiz
+  const [isLastReadFetched, setIsLastReadFetched] = useState(false);
+
+  const navigate = useNavigate();
+  const { id } = useParams(); // “bookId” parametre olarak URL’de
+  const { settings } = useUserSettings();
+
+  // Tema dinleyicisi (aynı kaldı)
+  useEffect(() => {
+    const observer = new MutationObserver(() => {
+      const newTheme = document.body.dataset.theme || "light";
+      setTheme(newTheme);
+    });
+    observer.observe(document.body, { attributes: true });
+    return () => observer.disconnect();
+  }, []);
+
+  // --------------------------------------------------------------------------------------------------
+  // 1) Kitap açıldığında:
+  //    a) /api/chapters/<bookId> → “chapters” dizisi içine TOC + bölümler olarak yerleşecek
+  //    b) LocalStorage’dan “readingProgress_<bookId>” varsa oradaki indeks doğrudan currentIndex’e ata
+  //    c) Eğer LocalStorage’de yoksa MongoDB’den LastRead çekilip, gerçek bölüm adı → chapters dizisinde karşılaştır → index + ata
+  //    d) Hepsi tamamlandıktan sonra isLastReadFetched = true
+  //    e) Eğer en az 1 gerçek bölüm varsa (chapters.length > 1) analiz kontrolünü başlat
+  // --------------------------------------------------------------------------------------------------
+  useEffect(() => {
+    if (!id) return;
+
+    // 1.a) Bölüm dosyalarını al (TOC dahil)
+    fetch(`http://localhost:5000/api/chapters/${id}`)
+      .then((res) => res.json())
+      .then((data) => {
+        // data[0] her zaman "00_Table_of_Contents.txt" olacaktır
+        setChapters(data);
+
+        // 1.b) LocalStorage’a bakalım
+        const storedIndex = localStorage.getItem(`readingProgress_${id}`);
+        if (storedIndex !== null) {
+          const idx = parseInt(storedIndex, 10);
+          if (!isNaN(idx) && idx >= 0 && idx < data.length) {
+            setCurrentIndex(idx);
+          }
+          setIsLastReadFetched(true);
+        } else {
+          // 1.c) LocalStorage’da kayıt yoksa MongoDB’den LastRead çek
+          const userId = localStorage.getItem("userId");
+          if (userId) {
+            fetch(`http://localhost:5000/api/lastread?userId=${userId}&bookId=${id}`)
+              .then((res) => res.json())
+              .then((lr) => {
+                if (lr.chapter) {
+                  // lr.chapter gerçek bölüm dosya adı, örn: "02_CHAPTER_II_The_Pool_of_Tears.txt"
+                  // chapters dizisinde karşılığı bul
+                  const idxInChapters = data.indexOf(lr.chapter);
+                  if (idxInChapters >= 0) {
+                    setCurrentIndex(idxInChapters);
+                  }
+                }
+                setIsLastReadFetched(true);
+              })
+              .catch((err) => {
+                console.error("LastRead fetch hatası:", err);
+                setIsLastReadFetched(true);
+              });
+          } else {
+            setIsLastReadFetched(true);
+          }
+        }
+
+        // 1.e) En az 1 gerçek bölüm varsa (data.length > 1), analiz kontrolünü başlat
+        //      NOT: data[0] = TOC, gerçek bölümler “data.slice(1)” içinde
+        if (data.length > 1) {
+          const realChapters = data.slice(1);
+          pollInitialAnalysis(id, realChapters);
+        }
+      })
+      .catch((err) => {
+        console.error("Bölümler alınamadı:", err);
+        setIsLastReadFetched(true);
+      });
+  }, [id]);
+
+  // --------------------------------------------------------------------------------------------------
+  // 2) İlk iki gerçek bölümün (data.slice(1).slice(0,2)) duygu analizi tamamlandığında analysisReady = true olacak
+  //    Eğer eksikse her 3 saniyede bir tekrar dene.
+  // --------------------------------------------------------------------------------------------------
+  const pollInitialAnalysis = async (bookId, realChapters) => {
+    setCheckingAnalysis(true);
+    try {
+      const analysisRes = await fetch(`http://localhost:5000/api/analysis/${bookId}`);
+      const analysisFiles = await analysisRes.json();
+
+      // İlk iki gerçek bölümün emotion dosya adları:
+      const neededEmotionFiles = realChapters
+        .slice(0, 2)
+        .map((filename) => filename.replace(".txt", "_emotion.txt"));
+
+      const hasAll = neededEmotionFiles.every((fname) =>
+        analysisFiles.includes(fname)
+      );
+
+      if (hasAll) {
+        setAnalysisReady(true);
+        setCheckingAnalysis(false);
+
+        // Eğer currentIndex = 0 (TOC) ise, currentChapterReady = true
+        // Eğer currentIndex = 1 veya 2 (ilk iki gerçek bölüm) ise, onları da hazır kabul et
+        if (currentIndex <= 2) {
+          setCurrentChapterReady(true);
+        } else {
+          // 2+ indeksli gerçek bölüm varsa, onun kontrolünü başlat
+          pollChapterAnalysis(bookId, realChapters, currentIndex - 1);
+        }
+      } else {
+        setTimeout(() => pollInitialAnalysis(bookId, realChapters), 3000);
+      }
+    } catch (err) {
+      console.error("İlk analiz kontrol hatası:", err);
+      setTimeout(() => pollInitialAnalysis(bookId, realChapters), 5000);
+    }
+  };
+
+  // --------------------------------------------------------------------------------------------------
+  // 3) Belirli bir gerçek bölümün duygu analizi var mı diye kontrol eder (index 2 ve sonrası için gerçek bölüm indeksi = currentIndex-1)
+  // --------------------------------------------------------------------------------------------------
+  const pollChapterAnalysis = async (bookId, realChapters, realIndex) => {
+    try {
+      const analysisRes = await fetch(`http://localhost:5000/api/analysis/${bookId}`);
+      const analysisFiles = await analysisRes.json();
+      const chapterName = realChapters[realIndex];
+      const emotionName = chapterName.replace(".txt", "_emotion.txt");
+
+      if (analysisFiles.includes(emotionName)) {
+        setCurrentChapterReady(true);
+      } else {
+        setTimeout(() => pollChapterAnalysis(bookId, realChapters, realIndex), 2000);
+      }
+    } catch (err) {
+      console.error("Bölüm analiz kontrol hatası:", err);
+      setTimeout(() => pollChapterAnalysis(bookId, realChapters, realIndex), 5000);
+    }
+  };
+
+  // --------------------------------------------------------------------------------------------------
+  // 4) Bir bölüm seçildiğinde içeriği yükle ve “currentChapterReady” kontrolü yap
+  //    - Eğer idx === 0 (TOC), anında hazır kabul et
+  //    - Aksi halde, idx >= 1 ise gerçek bölümler listesindeki dizini hesapla (idx - 1) ve pollChapterAnalysis başlat
+  //    - Yükleme bittikten sonra fadeIn = true yap
+  // --------------------------------------------------------------------------------------------------
+  const loadChapter = useCallback(
+    (filename) => {
+      const idx = chapters.indexOf(filename);
+      setCurrentChapterReady(false);
+
+      // Fade efektini başlat (opacity = 0)
+      setFadeIn(false);
+
+      if (idx === 0) {
+        // TOC her zaman hazır
+        setCurrentChapterReady(true);
+      } else {
+        // Gerçek bölüm, gerçek chapters listesinde gerçekIndex = idx - 1
+        const realIndex = idx - 1;
+        pollChapterAnalysis(id, chapters.slice(1), realIndex);
+      }
+
+      setLoading(true);
+      fetch(`http://localhost:5000/api/chapters/${id}/${filename}`)
+        .then((res) => res.json())
+        .then((data) => {
+          const normalized = data.content.replace(/\n{2,}/g, "\n");
+          setSelectedContent(normalized);
+          setLoading(false);
+          // İçerik yüklendikten sonra fadeIn = true (opacity = 1)
+          setTimeout(() => setFadeIn(true), 50);
+        })
+        .catch((err) => {
+          console.error("Bölüm yükleme hatası:", err);
+          setLoading(false);
+          setTimeout(() => setFadeIn(true), 50);
+        });
+    },
+    [id, chapters]
+  );
+
+  // --------------------------------------------------------------------------------------------------
+  // 5) currentIndex değiştiğinde:
+  //    a) isLastReadFetched === false ise bekle (henüz last read alınmadı)
+  //    b) Bölümü yükle (loadChapter)
+  //    c) LocalStorage’a yeni currentIndex’i kaydet
+  //    d) MongoDB’ye LastRead kaydet (isim olarak “chapters[currentIndex]”)
+  // --------------------------------------------------------------------------------------------------
+  useEffect(() => {
+    if (!isLastReadFetched) return;
+
+    if (chapters[currentIndex]) {
+      loadChapter(chapters[currentIndex]);
+      // LocalStorage’a kaydet
+      localStorage.setItem(`readingProgress_${id}`, currentIndex);
+
+      // MongoDB’ye kaydet
+      const userId = localStorage.getItem("userId");
+      if (userId) {
+        fetch("http://localhost:5000/api/lastread/save", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            userId,
+            bookId: id,
+            chapter: chapters[currentIndex]
+          }),
+        }).catch((err) => {
+          console.error("LastRead save hatası:", err);
+        });
+      }
+    }
+  }, [currentIndex, chapters, loadChapter, id, isLastReadFetched]);
+
+  const isDark = theme === "dark";
+  const handleBack = () => navigate("/library");
+  const handlePlayPause = () => setIsPlaying((prev) => !prev);
+
+  const handleNext = () => {
+    if (currentIndex < chapters.length - 1) {
+      setCurrentIndex((prev) => prev + 1);
+    }
+  };
+
+  const handlePrev = () => {
+    if (currentIndex > 0) {
+      setCurrentIndex((prev) => prev - 1);
+    }
+  };
+
+  const requestSummary = async (filename) => {
+    setSummaryModal(true);
+    setSummaryResult("Summarizing...");
+    try {
+      const res = await fetch(`http://localhost:5000/api/chapters/${id}/${filename}`);
+      const data = await res.json();
+      const response = await fetch("http://localhost:8000/summary", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: data.content }),
+      });
+      const result = await response.json();
+      if (result.summary) setSummaryResult(result.summary);
+      else setSummaryResult("Summary failed: " + result.error);
+    } catch (err) {
+      setSummaryResult("Sunucu hatası: " + err.message);
+    }
+  };
+
+  // Stil ayarları
+  const contentBg = isDark ? "#181818" : "#f5f1eb";
+  const textColor = isDark ? "#e0e0e0" : "#2c2c2c";
+  const headerBg = isDark ? "#1e1e1e" : "#faf9f6";
+
+  // Eğer analiz ve mevcut bölüm hazır değilse içeriği blur’la
+  // Not: currentIndex===0 (TOC) → currentChapterReady zaten true ayarlanıyor
+  const shouldBlur = !analysisReady || !currentChapterReady;
+  const overlayText = !analysisReady ? "Preparing book..." : "Preparing chapter...";
+
+  return (
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        height: "100%",
+        backgroundColor: contentBg,
+        position: "relative",
+      }}
+    >
+      {/* HEADER */}
+      <div
+        style={{
+          backgroundColor: headerBg,
+          color: textColor,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          position: "relative",
+          height: "50px",
+          flexShrink: 0,
+        }}
+      >
+        <Button
+          variant="link"
+          onClick={handleBack}
+          style={{
+            position: "absolute",
+            left: "10px",
+            color: textColor,
+            fontSize: "1.5rem",
+          }}
+        >
+          ←
+        </Button>
+        <span style={{ fontSize: "1.1rem", fontWeight: 500 }}>
+          {/*
+            “chapter numbers” şu şekilde gözüküyor:
+            0 → TOC (erenk “Chapter 0 / X” yerine “TOC / X” tarzı yazmak isterseniz burayı düzenleyebilirsiniz)
+            1 → 1. gerçek bölüm, vb.
+          */}
+          {currentIndex === 0
+            ? "TOC"
+            : `Chapter ${currentIndex} / ${chapters.length - 1}`}
+        </span>
+        <div style={{ position: "absolute", right: "10px" }}>
+          <Button
+            variant={isDark ? "outline-light" : "outline-dark"}
+            size="sm"
+            onClick={() => setShowMenu((prev) => !prev)}
+          >
+            ☰
+          </Button>
+        </div>
+      </div>
+
+      {/* MENÜ PANELİ */}
+      {showMenu && (
+        <div
+          style={{
+            position: "absolute",
+            top: "50px",
+            right: "10px",
+            width: "220px",
+            backgroundColor: isDark ? "#2c2c2c" : "#fff",
+            color: isDark ? "#fff" : "#000",
+            border: "1px solid #ccc",
+            borderRadius: "0.5rem",
+            zIndex: 2000,
+            padding: "1rem",
+            boxShadow: "0 4px 10px rgba(0,0,0,0.2)",
+          }}
+        >
+          <div className="d-flex flex-column gap-3">
+            <Button
+              size="sm"
+              variant={isDark ? "outline-light" : "outline-dark"}
+              onClick={() => {
+                setShowMenu(false);
+                setSummarySelectModal(true);
+              }}
+            >
+              📄 Summary
+            </Button>
+            <div>
+              <div className="mb-1">Font Size</div>
+              <input
+                type="range"
+                min={12}
+                max={28}
+                step={1}
+                value={fontSliderValue}
+                onChange={(e) => setFontSliderValue(parseInt(e.target.value, 10))}
+                className="form-range"
+              />
+              <div style={{ fontSize: "0.8rem" }}>Current: {fontSliderValue}px</div>
+            </div>
+            <div>
+              <div>🖼 Image Preference</div>
+              <small>(Not implemented yet)</small>
+            </div>
+            <Button
+              size="sm"
+              variant={isDark ? "outline-light" : "outline-dark"}
+              onClick={() => {
+                localStorage.setItem(`readingProgress_${id}`, currentIndex);
+                alert("Progress saved ✅");
+              }}
+            >
+              💾 Save Progress
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* İÇERİK ALANI */}
+      <div
+        style={{
+          height: "calc(100% - 50px - 50px)",
+          overflowY: "auto",
+          padding: "1rem",
+          backgroundColor: contentBg,
+          color: textColor,
+          filter: shouldBlur ? "blur(5px)" : "none",
+          transition: "filter 0.3s ease-in-out"
+        }}
+        className="custom-scroll"
+      >
+        {loading ? (
+          <div
+            className="d-flex justify-content-center align-items-center"
+            style={{ height: "100%" }}
+          >
+            <Spinner animation="border" />
+          </div>
+        ) : (
+          <pre
+            style={{
+              whiteSpace: "pre-wrap",
+              fontFamily: settings.fontFamily || "Georgia, serif",
+              fontSize: `${fontSliderValue}px`,
+              lineHeight: settings.lineHeight || 1.8,
+              maxWidth: "900px",
+              margin: "0 auto",
+              opacity: fadeIn ? 1 : 0,
+              transition: "opacity 0.3s ease-in-out",
+            }}
+          >
+            {selectedContent}
+          </pre>
+        )}
+
+        {/* Eğer analiz ve currentChapterReady tamamsa, Prev/Next butonlarını göster */}
+        {!shouldBlur && (
+          <>
+            {/*
+              “Prev” TUŞU:
+              - Eğer currentIndex > 0 ise göster (“0” TOC ise de geri dönmeye izin verebiliriz)
+            */}
+            {currentIndex > 0 && (
+              <Button
+                onClick={handlePrev}
+                style={{
+                  position: "fixed",
+                  left: "10px",
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  borderRadius: "50%",
+                  width: "44px",
+                  height: "44px",
+                  backgroundColor: "#444",
+                  color: "#fff",
+                  zIndex: 1000,
+                  border: "none",
+                }}
+              >
+                <FiSkipBack size={24} />
+              </Button>
+            )}
+
+            {/*
+              “Next” TUŞU:
+              - Eğer currentIndex < chapters.length - 1 ise göster
+            */}
+            {currentIndex < chapters.length - 1 && (
+              <Button
+                onClick={handleNext}
+                style={{
+                  position: "fixed",
+                  right: "10px",
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  borderRadius: "50%",
+                  width: "44px",
+                  height: "44px",
+                  backgroundColor: "#444",
+                  color: "#fff",
+                  zIndex: 1000,
+                  border: "none",
+                }}
+              >
+                <FiSkipForward size={24} />
+              </Button>
+            )}
+          </>
+        )}
+      </div>
+
+      {/* Overlay: “Preparing book / chapter…” */}
+      {shouldBlur && (
+        <div
+          style={{
+            position: "absolute",
+            top: "50px",
+            left: 0,
+            right: 0,
+            bottom: "50px",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            backgroundColor: isDark
+              ? "rgba(0, 0, 0, 0.6)"
+              : "rgba(255, 255, 255, 0.8)",
+            color: isDark ? "#fff" : "#000",
+            zIndex: 1500,
+          }}
+        >
+          {checkingAnalysis && (
+            <Spinner animation="border" variant={isDark ? "light" : "dark"} />
+          )}
+          <div style={{ marginTop: checkingAnalysis ? "0.5rem" : 0, fontSize: "1.2rem" }}>
+            {overlayText}
+          </div>
+        </div>
+      )}
+
+      {/* MÜZİK BARI (Örnek Sabit Tasarım) */}
+      <div
+        className="position-fixed bottom-0 start-0 end-0 d-flex justify-content-between align-items-center px-3"
+        style={{
+          height: "50px",
+          backgroundColor: "#000",
+          color: "#fff",
+          zIndex: 1200,
+        }}
+      >
+        <div className="d-flex align-items-center gap-2">
+          <img
+            src="https://picsum.photos/200/200?random=31"
+            alt="cover"
+            style={{
+              width: "40px",
+              height: "40px",
+              borderRadius: "0.5rem",
+              objectFit: "cover",
+            }}
+          />
+          <div>
+            <div style={{ fontWeight: "bold", fontSize: "0.9rem" }}>
+              Locked Eyes
+            </div>
+            <div style={{ fontSize: "0.7rem", color: "#ccc" }}>
+              Mystery Friends
+            </div>
+          </div>
+        </div>
+
+        <div className="d-flex align-items-center gap-2">
+          <Button
+            variant="outline-light"
+            size="sm"
+            style={{
+              borderRadius: "50%",
+              width: "30px",
+              height: "30px",
+              padding: 0,
+            }}
+          >
+            <FiSkipBack size={16} />
+          </Button>
+          <Button
+            variant="light"
+            size="sm"
+            onClick={handlePlayPause}
+            style={{
+              borderRadius: "50%",
+              width: "36px",
+              height: "36px",
+              padding: 0,
+            }}
+          >
+            {isPlaying ? <FiPause size={18} /> : <FiPlay size={18} />}
+          </Button>
+          <Button
+            variant="outline-light"
+            size="sm"
+            style={{
+              borderRadius: "50%",
+              width: "30px",
+              height: "30px",
+              padding: 0,
+            }}
+          >
+            <FiSkipForward size={16} />
+          </Button>
+        </div>
+
+        <div className="d-flex align-items-center gap-2">
+          <select
+            className="form-select form-select-sm"
+            value={playlist}
+            onChange={(e) => setPlaylist(e.target.value)}
+            style={{
+              maxWidth: "120px",
+              backgroundColor: "#1f1f1f",
+              color: "#fff",
+              borderColor: "#333",
+              borderRadius: "0.375rem",
+              height: "30px",
+              fontSize: "0.8rem",
+            }}
+          >
+            <option value="general">🎵 General</option>
+            <option value="my">🎶 My Playlist</option>
+          </select>
+          <Button
+            variant="outline-light"
+            size="sm"
+            onClick={() => setIsAdded(true)}
+            disabled={isAdded}
+            style={{
+              height: "30px",
+              width: "50px",
+              borderRadius: "0.375rem",
+              fontSize: "0.75rem",
+              padding: 0,
+            }}
+          >
+            <FiPlus size={16} />
+          </Button>
+        </div>
+      </div>
+
+      {/* ÖZET SEÇİM MODAL */}
+      <Modal
+        show={summarySelectModal}
+        onHide={() => setSummarySelectModal(false)}
+        centered
+      >
+        <Modal.Header closeButton>
+          <Modal.Title>Which chapter would you like to summarize?</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <select
+            value={selectedChapterToSummarize}
+            onChange={(e) => setSelectedChapterToSummarize(e.target.value)}
+            className="form-select mb-3"
+          >
+            <option value="">Select a Chapter</option>
+            {/*
+              TOC de listede görünsün, isterseniz TOC’yi summary için engellersiniz.
+              Burada sadece gerçek bölümleri göstermek isterseniz:
+              chapters.slice(1).map(...) ile değiştirin.
+            */}
+            {chapters.map((ch, idx) => (
+              <option key={idx} value={ch}>
+                {ch.replace(".txt", "").replace(/_/g, " ")}
+              </option>
+            ))}
+          </select>
+          <Button
+            onClick={() => {
+              if (selectedChapterToSummarize) {
+                setSummarySelectModal(false);
+                requestSummary(selectedChapterToSummarize);
+              }
+            }}
+            disabled={!selectedChapterToSummarize}
+          >
+            Summarize
+          </Button>
+        </Modal.Body>
+      </Modal>
+
+      {/* ÖZET SONUÇ MODAL */}
+      <Modal show={summaryModal} onHide={() => setSummaryModal(false)} centered size="lg">
+        <Modal.Header closeButton>
+          <Modal.Title>Chapter Summary</Modal.Title>
+        </Modal.Header>
+        <Modal.Body
+          style={{
+            whiteSpace: "pre-wrap",
+            fontFamily: settings.fontFamily || "Georgia, serif",
+          }}
+        >
+          {summaryResult}
+        </Modal.Body>
+      </Modal>
+
+      {/* Scrollbar stili */}
+      <style>{`
+        .custom-scroll::-webkit-scrollbar {
+          width: 8px;
+        }
+        .custom-scroll::-webkit-scrollbar-thumb {
+          background-color: ${isDark ? "#444" : "#bbb"};
+          border-radius: 4px;
+        }
+        .custom-scroll::-webkit-scrollbar-track {
+          background-color: ${isDark ? "#2b2b2b" : "#eee"};
+        }
+      `}</style>
+    </div>
+  );
+}
