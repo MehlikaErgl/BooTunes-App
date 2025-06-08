@@ -183,8 +183,7 @@ export default function Layout({ children }) {
               borderRadius: "1rem",
               boxShadow: "0 8px 24px rgba(0,0,0,0.15)",
               maxHeight: "calc(100vh - 98px)",
-              overflowY: isSettingsPage ? "auto" : "hidden",
-              overflowY: isLibraryPage ? "auto" : "hidden",
+              overflowY: isSettingsPage || isLibraryPage ? "auto" : "hidden",
               backdropFilter: contentBlur
             }}
           >
