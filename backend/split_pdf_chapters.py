@@ -130,11 +130,10 @@ def split_pdf_into_chapters(pdf_path, out_dir="chapters"):
                 new_content = content[:idx].rstrip()
                 with open(last_path, "w", encoding="utf-8") as f:
                     f.write(new_content)
-                print(f"✔ Truncated last chapter at Gutenberg marker → {last_path}")
+                print(f"Truncated last chapter at Gutenberg marker: {last_path}")
         except FileNotFoundError:
             pass
 
-    # ✅ Fallback: Hiç bölüm yoksa veya sadece TOC yazılmışsa yine de tek dosya yaz
     if not segments or len(written_files) == 0:
         full_text = "\n".join(lines).strip()
         if len(full_text) > 0:
